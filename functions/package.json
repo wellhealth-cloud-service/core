@@ -9,7 +9,8 @@
     "deploy": "firebase deploy --only functions",
     "logs": "firebase functions:log",
     "servel": "nodemon --exec 'npm run serve'",
-    "servew": "nodemon --exec \"npm run serve\""
+    "servew": "nodemon --exec \"npm run serve\"",
+    "servet": "nodemon --exec \"node tg\""
   },
   "engines": {
     "node": "14"
