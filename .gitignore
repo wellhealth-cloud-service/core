@@ -102,3 +102,9 @@ dist
 
 # TernJS port file
 .tern-port
+
+# Json config
+# exclude everything
+auth/
+# exception to the rule
+!auth/.gitkeep 
