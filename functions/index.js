@@ -3,7 +3,17 @@ const admin = require("firebase-admin");
 const express = require("express");
 const cors = require("cors");
 const TelegramBot = require("node-telegram-bot-api");
-var botConfig = require("./auth/apiBotToken.json");
+const botConfig = require("./auth/apiBotToken.json");
+const { Storage } = require("@google-cloud/storage");
+const serviceAccount = require("./auth/serviceAccountKey.json");
+
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
+const db = admin.firestore();
+const batch = db.batch();
+const storage = new Storage();
 
 const app = express();
 app.use(cors({ origin: true }));
@@ -13,7 +23,7 @@ app.use(express.json());
 // process.env.TELEGRAM_TOKEN || "YOUR_TELEGRAM_BOT_TOKEN"
 const TOKEN = botConfig.api_token;
 // https://<PUBLIC-URL>
-const url = "https://f047-109-231-73-218.ngrok.io";
+const url = "https://8d93-109-231-73-218.ngrok.io";
 // const url = "https://us-central1-spring-duality-330117.cloudfunctions.net/app";
 
 // No need to pass any parameters as we will handle the updates with Express
@@ -27,9 +37,9 @@ app.get("/oauthplayground", (req, res) => {
   reqObj["headers"] = req.headers;
   reqObj["quaries"] = req.query;
   reqObj["body"] = req.body;
-  const resObj = JSON.stringify(reqObj);
+  //const resObj = JSON.stringify(reqObj);
 
-  return res.status(200).send(resObj);
+  return res.status(200).send(reqObj);
 });
 
 exports.app = functions.https.onRequest(app);
