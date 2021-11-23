@@ -9,6 +9,7 @@ const fs = require("fs");
 const { Storage } = require("@google-cloud/storage");
 const serviceAccount = require("./auth/serviceAccount.json");
 const { v1: uuidv1, v4: uuidv4 } = require("uuid");
+const { docs } = require("googleapis/build/src/apis/docs");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -24,6 +25,17 @@ const oauth2Client = new google.auth.OAuth2(
   clientSecret.web.redirect_uris
 );
 
+// const fit = google.fitness({
+//   varsion: "v2",
+//   auth: oauth2Client,
+// });
+
+// const drive = google.drive({
+//   version: "v2",
+//   auth: oauth2Client,
+// });
+
+//TODO: integrate all in one option
 // generate a url that asks permissions for Blogger and Google Calendar scopes
 const scopes = [
   "https://www.googleapis.com/auth/fitness.activity.read", // Use Google Fit to see and store your physical activity data
@@ -51,7 +63,7 @@ const scopes = [
 ];
 
 const TOKEN = botConfig.api_token;
-const url = "https://8d93-109-231-73-218.ngrok.io";
+const url = "https://6516-142-137-165-45.ngrok.io";
 const port = 8090;
 
 // No need to pass any parameters as we will handle the updates with Express
@@ -64,6 +76,36 @@ const app = express();
 
 // parse the updates to JSON
 app.use(express.json());
+
+//https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=accessToken
+isAuthorizedClient = async (id) => {
+  try {
+    const snapshot = await db
+      .collection("oauth")
+      // .where(u'photos.id1', u'==', True)
+      // .where("chat", "array-contains", { id: 89370592 })
+      // .where("chat.id", "array-contains", ["89370592"])
+      .where("id", "==", id)
+      .orderBy("message_id", "asc")
+      .limitToLast(1)
+      // .select("message_id")
+      // .limit(1)
+      .get();
+    const docs = [];
+    snapshot.docs.map((doc) => docs.push(doc.data())); //.limitToFirst(1);
+    console.log(docs);
+
+    // const snapshot = await db.collection("oauth").where("id", "==", id).orderBy("").get();
+    // const docs = [];
+    // snapshot.docs.map((doc) => docs.push(doc.data())); //.limitToFirst(1);
+
+    // var jsonObj = JSON.stringify(docs);
+
+    // console.log(docs);
+  } catch (error) {
+    console.log(error);
+  }
+};
 
 app.get(`/oauth2callback`, (req, res) => {
   (async () => {
@@ -81,20 +123,34 @@ app.get(`/oauth2callback`, (req, res) => {
 
       const jsonObj = JSON.stringify(replyObj);
 
+      const snapshot = await db
+        .collection("messages")
+        .where("chat.id", "==", parseInt(req.query.state))
+        .orderBy("message_id", "asc")
+        .limitToLast(1)
+        .select("message_id")
+        .get();
+
+      const docs = [];
+      snapshot.docs.map((doc) => docs.push(doc.data())); //.limitToFirst(1);
+      var message_id = docs[0].message_id;
+
       var myObj = {
         code: req.query.code,
-        id: req.query.state,
+        id: parseInt(req.query.state),
         scope: tokens.scope,
         access_token: tokens.access_token,
         expiry_date: tokens.expiry_date,
         refresh_token: tokens.refresh_token,
         token_type: tokens.token_type,
+        message_id: message_id,
       };
       const myJson = JSON.stringify(myObj);
 
       await db
         .collection("oauth")
-        .doc("/" + new Date().getTime().toString(36) + "/")
+        .doc("/" + message_id + "/")
+        // .doc("/" + new Date().getTime().toString(36) + "/")
         .create(myObj);
 
       await fs.writeFile("oauth.txt", jsonObj, function (err) {
@@ -154,13 +210,39 @@ bot.on("message", (msg) => {
             scope: scopes,
             state: msg.from.id,
             include_granted_scopes: true,
+            prompt: "consent",
+          });
+
+          var markup = JSON.stringify({
+            inline_keyboard: [
+              [
+                {
+                  text: "Authorize me",
+                  url: url,
+                },
+              ],
+            ],
           });
           bot.sendMessage(
             msg.chat.id,
-            `Open this link to authorize the bot:\r\n${url}`
+            "Hi here! Please authorize me to set up a Google Fit integration.",
+            { reply_markup: markup }
           );
           break;
         default:
+          // bot.sendMessage(
+          //   msg.chat.id,
+          //   "I am alive! \n<a href='https://www.google.com/'>Google</a>",
+          //   { parse_mode: "HTML" }
+          // );
+          // var markup = JSON.stringify({
+          //   inline_keyboard: [
+          //     [{ text: "Some button text 1", callback_data: "1" }],
+          //     [{ text: "Some button text 2", callback_data: "2" }],
+          //     [{ text: "Some button text 3", callback_data: "3" }],
+          //   ],
+          // });
+          isAuthorizedClient(msg.chat.id);
           bot.sendMessage(msg.chat.id, "I am alive!");
       }
       // Save the message

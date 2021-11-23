@@ -106,5 +106,6 @@ dist
 # Json config
 # exclude everything
 auth/
+
 # exception to the rule
 !auth/.gitkeep 
