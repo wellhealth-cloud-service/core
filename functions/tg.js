@@ -10,6 +10,10 @@ const { Storage } = require("@google-cloud/storage");
 const serviceAccount = require("./auth/serviceAccount.json");
 const { v1: uuidv1, v4: uuidv4 } = require("uuid");
 const { docs } = require("googleapis/build/src/apis/docs");
+const axios = require("axios").default;
+const querystring = require("querystring");
+const qs = require("qs");
+const { iam } = require("googleapis/build/src/apis/iam");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -78,6 +82,7 @@ const app = express();
 app.use(express.json());
 
 //https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=accessToken
+// TODO: manage refresh_token
 isAuthorizedClient = async (id) => {
   try {
     const snapshot = await db
@@ -93,7 +98,168 @@ isAuthorizedClient = async (id) => {
       .get();
     const docs = [];
     snapshot.docs.map((doc) => docs.push(doc.data())); //.limitToFirst(1);
-    console.log(docs);
+    // console.log(docs[0].access_token);
+
+    // expires_in
+    // OPTIONAL.  The lifetime in seconds of the access token.  For
+    // example, the value "3600" denotes that the access token will
+    // expire in one hour from the time the response was generated.
+
+    // axios
+    //   .get("https://www.googleapis.com/oauth2/v1/tokeninfo", {
+    //     params: {
+    //       access_token: docs[0].access_token,
+    //     },
+    //   })
+    //   .then(function (response) {
+    //     console.log(response.data);
+    //   })
+    //   .catch(function (error) {
+    //     console.log("error");
+    //   })
+    //   .then(function () {
+    //     // always executed
+    //   });
+
+    if (docs.length == 0) return false;
+
+    const options = {
+      method: "get",
+      url: "https://www.googleapis.com/oauth2/v1/tokeninfo",
+      params: {
+        access_token: docs[0].access_token,
+        // access_token: "1",
+      },
+    };
+
+    const res = await axios(options);
+    return true;
+    // return typeof res.data !== "undefined" ? true : false;
+
+    // axios(options)
+    //   .then(function (response) {
+    //     //response.data
+    //     console.log("true");
+    //     return true;
+    //   })
+    //   .catch(function (error) {
+    //     console.log("error");
+    //     return false;
+    //   })
+    //   .then(function () {
+    //     // always executed
+    //     //return false;
+    //   });
+
+    // const params = new URLSearchParams();
+    // params.append("access_token", docs[0].access_token);
+
+    // const params = new URLSearchParams({
+    //   access_token: docs[0].access_token,
+    // }).toString();
+    //const url = "https://www.googleapis.com/oauth2/v1/tokeninfo";
+
+    // const url = "https://www.googleapis.com/oauth2/v1/tokeninfo?" + params;
+
+    // var access_token = docs[0].access_token;
+
+    // var data = {};
+
+    // const params = new URLSearchParams({
+    //   access_token: docs[0].access_token,
+    // }).toString();
+
+    // const url = "https://www.googleapis.com/oauth2/v1/tokeninfo?" + params;
+    // console.log(url);
+
+    // const tokenSend = { access_token };
+
+    // axios
+    //   .get("https://www.googleapis.com/oauth2/v1/tokeninfo/", tokenSend)
+    //   .then((res) => {
+    //     this.Info = JSON.parse(res.data);
+    //   })
+    //   .catch((err) => {
+    //     console.log("err");
+    //   });
+
+    // axios
+    //   .post(`https://www.googleapis.com/oauth2/v1/tokeninfo?`, null, {
+    //     params: {
+    //       access_token,
+    //     },
+    //   })
+    //   .then((response) => console.log("response"))
+    //   .catch((err) => console.log("error"));
+
+    // axios
+    //   .get("https://www.googleapis.com/oauth2/v1/tokeninfo?", params)
+    //   .then(function (response) {
+    //     console.log("response");
+    //   })
+    //   .catch(function (error) {
+    //     console.log("error");
+    //   })
+    //   .then(function () {
+    //     // always executed
+    //   });
+
+    // axios.post('http://something.com/', querystring.stringify({ foo: 'bar' }));
+
+    // const options = {
+    //   method: "get",
+    //   // headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    //   data: {},
+    //   url: url,
+    //   // params: params.toString(),
+    // };
+
+    // axios(options)
+    //   .then(function (response) {
+    //     console.log("response");
+    //   })
+    //   .catch(function (error) {
+    //     console.log("error");
+    //   })
+    //   .then(function () {
+    //     // always executed
+    //   });
+
+    // Optionally the request above could also be done as
+    // axios
+    //   .get("/user", {
+    //     params: {
+    //       ID: 12345,
+    //     },
+    //   })
+    //   .then(function (response) {
+    //     console.log(response);
+    //   })
+    //   .catch(function (error) {
+    //     console.log(error);
+    //   })
+    //   .then(function () {
+    //     // always executed
+    //   });
+
+    // axios.get("/user/12345").then(function (response) {
+    //   console.log(response.data);
+    //   console.log(response.status);
+    //   console.log(response.statusText);
+    //   console.log(response.headers);
+    //   console.log(response.config);
+    // });
+
+    // const options = {
+    //   method: 'POST',
+    //   headers: { 'content-type': 'application/x-www-form-urlencoded' },
+    //   data: qs.stringify(data),
+    //   url,
+    // };
+    // axios(options);
+
+    // const querystring = require('querystring');
+    // axios.post('http://something.com/', querystring.stringify({ foo: 'bar' }));
 
     // const snapshot = await db.collection("oauth").where("id", "==", id).orderBy("").get();
     // const docs = [];
@@ -103,7 +269,93 @@ isAuthorizedClient = async (id) => {
 
     // console.log(docs);
   } catch (error) {
-    console.log(error);
+    return false;
+  }
+};
+
+getAccessToken = async (id) => {
+  try {
+    const snapshot = await db
+      .collection("oauth")
+      .where("id", "==", id)
+      .orderBy("message_id", "asc")
+      .limitToLast(1)
+      .get();
+    const docs = [];
+    snapshot.docs.map((doc) => docs.push(doc.data())); //.limitToFirst(1);
+
+    return docs.length == 0 ? null : docs[0].access_token;
+  } catch (error) {
+    return null;
+  }
+};
+
+createDataSource = async (id) => {
+  try {
+    var dataSource = {
+      dataStreamName: "MyDataSource",
+      type: "derived",
+      application: {
+        detailsUrl: "http://example.com",
+        name: "Foo Example App",
+        version: "1",
+      },
+      dataType: {
+        field: [
+          {
+            name: "steps",
+            format: "integer",
+          },
+        ],
+        name: "com.google.step_count.delta",
+      },
+      device: {
+        manufacturer: "Example Manufacturer",
+        model: "ExampleTablet",
+        type: "tablet",
+        uid: "1000001",
+        version: "1",
+      },
+    };
+
+    var accessToken = getAccessToken(id);
+    if (accessToken === null) return null;
+
+    const options = {
+      method: "get",
+      url: "https://www.googleapis.com/oauth2/v1/tokeninfo",
+      params: {
+        access_token: docs[0].access_token,
+        // access_token: "1",
+      },
+    };
+
+    const res = await axios(options);
+    return true;
+  } catch (error) {
+    return null;
+  }
+};
+
+getDataSource = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    const options = {
+      method: "get",
+      url: "https://www.googleapis.com/fitness/v1/users/me/dataSources",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    };
+
+    const res = await axios(options);
+    return res.data;
+  } catch (error) {
+    console.log("h1");
+    return null;
   }
 };
 
@@ -159,7 +411,8 @@ app.get(`/oauth2callback`, (req, res) => {
         }
       });
 
-      return res.status(200).send(replyObj);
+      return res.redirect("https://t.me/wellhealthbot?menu=hi");
+      // return res.status(200).send(replyObj);
     } catch (error) {
       console.log(error);
       return res.status(500).send(error);
@@ -202,32 +455,69 @@ bot.on("message", (msg) => {
   (async () => {
     try {
       switch (msg.text) {
-        case "/connect":
-          const url = oauth2Client.generateAuthUrl({
-            // 'online' (default) or 'offline' (gets refresh_token)
-            access_type: "offline",
-            // If you only need one scope you can pass it as a string
-            scope: scopes,
-            state: msg.from.id,
-            include_granted_scopes: true,
-            prompt: "consent",
-          });
+        case "/connect": // Authorization by Google
+          var isAuth = await isAuthorizedClient(msg.chat.id);
 
-          var markup = JSON.stringify({
-            inline_keyboard: [
-              [
-                {
-                  text: "Authorize me",
-                  url: url,
-                },
+          if (!isAuth) {
+            const url = oauth2Client.generateAuthUrl({
+              // 'online' (default) or 'offline' (gets refresh_token)
+              access_type: "offline",
+              // If you only need one scope you can pass it as a string
+              scope: scopes,
+              state: msg.from.id,
+              include_granted_scopes: true,
+              prompt: "consent",
+            });
+
+            var markup = JSON.stringify({
+              inline_keyboard: [
+                [
+                  {
+                    text: "Authorize me",
+                    url: url,
+                  },
+                ],
               ],
-            ],
-          });
-          bot.sendMessage(
-            msg.chat.id,
-            "Hi here! Please authorize me to set up a Google Fit integration.",
-            { reply_markup: markup }
-          );
+            });
+            bot.sendMessage(
+              msg.chat.id,
+              "Hi here! Please authorize <b>WellHealth</b> 🤖 to set up a <b>GoogleFit🏃‍♂️</b> integration.",
+              { reply_markup: markup, parse_mode: "HTML" }
+            );
+          } else {
+            bot.sendMessage(msg.chat.id, "I am alive!");
+          }
+
+          break;
+        case "1":
+          bot.sendMessage(msg.chat.id, "I am alive 1!");
+          break;
+        case "/menu": // Open menu
+          var isAuth = await isAuthorizedClient(msg.chat.id);
+          if (!isAuth)
+            bot.sendMessage(
+              msg.chat.id,
+              "Please use /connect to link your <b>GoogleFit🏃‍♂️</b> account first.",
+              { parse_mode: "HTML" }
+            );
+          else {
+            var markup = JSON.stringify({
+              inline_keyboard: [
+                [
+                  { text: "Some button text 1", callback_data: "1" },
+                  { text: "Some button text 2", callback_data: "2" },
+                ],
+                [{ text: "Some button text 3", callback_data: "3" }],
+                [{ text: "Some button text 4", callback_data: "4" }],
+              ],
+            });
+            bot.sendMessage(
+              msg.chat.id,
+              "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
+              { reply_markup: markup, parse_mode: "HTML" }
+            );
+          }
+
           break;
         default:
           // bot.sendMessage(
@@ -242,8 +532,21 @@ bot.on("message", (msg) => {
           //     [{ text: "Some button text 3", callback_data: "3" }],
           //   ],
           // });
-          isAuthorizedClient(msg.chat.id);
-          bot.sendMessage(msg.chat.id, "I am alive!");
+          var isAuth = await isAuthorizedClient(msg.chat.id);
+          //console.log(isAuth);
+          // console.log(isAuth);
+          var dsource = await getDataSource(msg.chat.id);
+          console.log(console);
+          if (isAuth) bot.sendMessage(msg.chat.id, "I am alive!");
+          //JSON.stringify(dsource)
+          //  <a href="https://t.me/YOUR_BOT?start=image-123456789">image name</a>
+          else
+            bot.sendMessage(
+              msg.chat.id,
+              "Please use /connect to link your <b>GoogleFit🏃‍♂️</b> account first.",
+              { parse_mode: "HTML" }
+            );
+        //GitHub, [11/23/2021 10:57 AM] Please use /connect to link your GitHub account first.
       }
       // Save the message
       await db
@@ -255,6 +558,28 @@ bot.on("message", (msg) => {
       bot.sendMessage(msg.chat.id, error);
     }
   })();
+});
+
+bot.on("callback_query", function (msg) {
+  (async () => {
+    try {
+      switch (msg.data) {
+        case "1":
+          // bot.sendMessage(msg.from.id, "I am alive 1!");
+          bot.answerCallbackQuery(msg.id, "You sent 1", { show_alert: false });
+          bot.sendMessage(msg.from.id, "I am alive 0!");
+          break;
+        default:
+          bot.sendMessage(msg.from.id, "I am alive 0!");
+
+          break;
+      }
+    } catch (error) {
+      // console.log(error);
+      bot.sendMessage(msg.chat.id, error);
+    }
+  })();
+  console.log(msg);
 });
 
 // bot.onText(/\/connect/, (msg) => {
