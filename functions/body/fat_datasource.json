@@ -1,0 +1,18 @@
+{
+    "dataStreamName": "user_input",
+    "type": "raw",
+    "dataType": {
+        "name": "com.google.body.fat.percentage",
+        "field": [
+            {
+                "name": "percentage",
+                "format": "floatPoint"
+            }
+        ]
+    },
+    "application": {
+        "detailsUrl": "https://t.me/wellhealthbot?start",
+        "name": "WellHealth Bot",
+        "version": "1.0"
+    }
+}

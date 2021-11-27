@@ -14,6 +14,14 @@ const axios = require("axios").default;
 const querystring = require("querystring");
 const qs = require("qs");
 const { iam } = require("googleapis/build/src/apis/iam");
+const { datastore } = require("googleapis/build/src/apis/datastore");
+// datasources and datasets
+const weightDataSource = require("./body/weight_datasource.json");
+const weightDataSet = require("./body/weight_dataset.json");
+const heightDataSource = require("./body/height_datasource.json");
+const heightDataSet = require("./body/height_dataset.json");
+const fatDataSource = require("./body/fat_datasource.json");
+const fatDataSet = require("./body/fat_dataset.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -290,6 +298,222 @@ getAccessToken = async (id) => {
   }
 };
 
+createFatDataSource = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataSource = fatDataSource;
+
+    const options = {
+      method: "post",
+      url: "https://www.googleapis.com/fitness/v1/users/me/dataSources",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSource,
+    };
+
+    const res = await axios(options);
+    return res.data.dataStreamId;
+  } catch (error) {
+    console.log(error.response);
+    return null;
+  }
+};
+
+createFatDataSet = async (id, fat) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "com.google.body.fat.percentage"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) {
+      dataStreamId = await createFatDataSource(id);
+      if (dataStreamId === null) return null;
+    }
+
+    var dataSet = fatDataSet;
+    dataSet.dataSourceId = dataStreamId;
+    dataSet.point[0].value[0].fpVal = parseFloat(fat);
+    dataSet.point[0].originDataSourceId = dataStreamId;
+
+    const options = {
+      method: "patch",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/1637951928905590600-1637951929907695000`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSet,
+    };
+
+    const res = await axios(options);
+    return true;
+  } catch (error) {
+    return null;
+  }
+};
+
+createHeightDataSource = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataSource = heightDataSource;
+
+    const options = {
+      method: "post",
+      url: "https://www.googleapis.com/fitness/v1/users/me/dataSources",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSource,
+    };
+
+    const res = await axios(options);
+    return res.data.dataStreamId;
+  } catch (error) {
+    console.log(error.response.status);
+    return null;
+  }
+};
+
+createHeightDataSet = async (id, height) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "com.google.height"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) {
+      dataStreamId = await createHeightDataSource(id);
+      if (dataStreamId === null) return null;
+    }
+
+    var dataSet = heightDataSet;
+    dataSet.dataSourceId = dataStreamId;
+    dataSet.point[0].value[0].fpVal = parseFloat(height);
+    dataSet.point[0].originDataSourceId = dataStreamId;
+
+    const options = {
+      method: "patch",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/1637951928905590600-1637951929907695000`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSet,
+    };
+
+    const res = await axios(options);
+    return true;
+  } catch (error) {
+    return null;
+  }
+};
+
+createWeightDataSource = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataSource = weightDataSource;
+
+    const options = {
+      method: "post",
+      url: "https://www.googleapis.com/fitness/v1/users/me/dataSources",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSource,
+    };
+
+    const res = await axios(options);
+    return res.data.dataStreamId;
+  } catch (error) {
+    console.log(error.response.status);
+    return null;
+  }
+};
+
+createWeightDataSet = async (id, weight) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "com.google.weight"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) {
+      dataStreamId = await createWeightDataSource(id);
+      if (dataStreamId === null) return null;
+    }
+
+    var dataSet = weightDataSet;
+    dataSet.dataSourceId = dataStreamId;
+    dataSet.point[0].value[0].fpVal = parseFloat(weight);
+    dataSet.point[0].originDataSourceId = dataStreamId;
+
+    const options = {
+      method: "patch",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/1637951928905590600-1637951929907695000`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSet,
+    };
+
+    const res = await axios(options);
+    return true;
+  } catch (error) {
+    return null;
+  }
+};
+
 createDataSource = async (id) => {
   try {
     var dataSource = {
@@ -354,7 +578,6 @@ getDataSource = async (id) => {
     const res = await axios(options);
     return res.data;
   } catch (error) {
-    console.log("h1");
     return null;
   }
 };
@@ -411,7 +634,7 @@ app.get(`/oauth2callback`, (req, res) => {
         }
       });
 
-      return res.redirect("https://t.me/wellhealthbot?menu=hi");
+      return res.redirect("https://t.me/wellhealthbot?start=hi");
       // return res.status(200).send(replyObj);
     } catch (error) {
       console.log(error);
@@ -454,7 +677,76 @@ app.listen(port, () => {
 bot.on("message", (msg) => {
   (async () => {
     try {
-      switch (msg.text) {
+      // console.log("msg");
+      // console.log(msg);
+      var id = msg.from.id;
+      var txt =
+        msg.reply_to_message === (null || undefined)
+          ? msg.text
+          : msg.reply_to_message.text;
+      // console.log(txt);
+      switch (txt) {
+        case "Please enter your fat 👇":
+          console.log("FAT");
+          var res = await createFatDataSet(id, msg.text);
+          if (res) bot.sendMessage(id, "Fat saved ✅");
+          else bot.sendMessage(id, "Fat not saved ❌");
+          var bodyMenu = JSON.stringify({
+            inline_keyboard: [
+              [
+                { text: "Weight ⚖️", callback_data: "BM_W" },
+                { text: "Height 📐", callback_data: "BM_H" },
+                { text: "Body fat 🥩", callback_data: "BM_F" },
+              ],
+              [{ text: "Main menu 🏠", callback_data: "BM_Home" }],
+            ],
+          });
+          bot.sendMessage(
+            id,
+            "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
+            { reply_markup: bodyMenu, parse_mode: "HTML" }
+          );
+          break;
+        case "Please enter your height 👇":
+          var res = await createHeightDataSet(id, msg.text);
+          if (res) bot.sendMessage(id, "Height saved ✅");
+          else bot.sendMessage(id, "Height not saved ❌");
+          var bodyMenu = JSON.stringify({
+            inline_keyboard: [
+              [
+                { text: "Weight ⚖️", callback_data: "BM_W" },
+                { text: "Height 📐", callback_data: "BM_H" },
+                { text: "Body fat 🥩", callback_data: "BM_F" },
+              ],
+              [{ text: "Main menu 🏠", callback_data: "BM_Home" }],
+            ],
+          });
+          bot.sendMessage(
+            id,
+            "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
+            { reply_markup: bodyMenu, parse_mode: "HTML" }
+          );
+          break;
+        case "Please enter your weight 👇":
+          var res = await createWeightDataSet(id, msg.text);
+          if (res) bot.sendMessage(id, "Weight saved ✅");
+          else bot.sendMessage(id, "Weight not saved ❌");
+          var bodyMenu = JSON.stringify({
+            inline_keyboard: [
+              [
+                { text: "Weight ⚖️", callback_data: "BM_W" },
+                { text: "Height 📐", callback_data: "BM_H" },
+                { text: "Body fat 🥩", callback_data: "BM_F" },
+              ],
+              [{ text: "Main menu 🏠", callback_data: "BM_Home" }],
+            ],
+          });
+          bot.sendMessage(
+            id,
+            "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
+            { reply_markup: bodyMenu, parse_mode: "HTML" }
+          );
+          break;
         case "/connect": // Authorization by Google
           var isAuth = await isAuthorizedClient(msg.chat.id);
 
@@ -489,8 +781,20 @@ bot.on("message", (msg) => {
           }
 
           break;
-        case "1":
-          bot.sendMessage(msg.chat.id, "I am alive 1!");
+        case "/start":
+          var isAuth = await isAuthorizedClient(id);
+          if (!isAuth)
+            bot.sendMessage(
+              id,
+              "Please use /connect to link your <b>GoogleFit🏃‍♂️</b> account first.",
+              { parse_mode: "HTML" }
+            );
+          else
+            bot.sendMessage(
+              id,
+              "Please use /menu to view what <b>WellHealth</b> 🤖 can do",
+              { parse_mode: "HTML" }
+            );
           break;
         case "/menu": // Open menu
           var isAuth = await isAuthorizedClient(msg.chat.id);
@@ -501,52 +805,41 @@ bot.on("message", (msg) => {
               { parse_mode: "HTML" }
             );
           else {
-            var markup = JSON.stringify({
+            var mainMenu = JSON.stringify({
               inline_keyboard: [
                 [
-                  { text: "Some button text 1", callback_data: "1" },
-                  { text: "Some button text 2", callback_data: "2" },
+                  { text: "Body measurements 📏", callback_data: "BM" },
+                  { text: "Nutrition 🍔", callback_data: "NT" },
                 ],
-                [{ text: "Some button text 3", callback_data: "3" }],
-                [{ text: "Some button text 4", callback_data: "4" }],
+                [
+                  { text: "Activity 🚴‍♀️", callback_data: "AC" },
+                  { text: "Vitals 🩺", callback_data: "VT" },
+                ],
               ],
             });
             bot.sendMessage(
               msg.chat.id,
               "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
-              { reply_markup: markup, parse_mode: "HTML" }
+              { reply_markup: mainMenu, parse_mode: "HTML" }
             );
           }
 
           break;
         default:
-          // bot.sendMessage(
-          //   msg.chat.id,
-          //   "I am alive! \n<a href='https://www.google.com/'>Google</a>",
-          //   { parse_mode: "HTML" }
-          // );
-          // var markup = JSON.stringify({
-          //   inline_keyboard: [
-          //     [{ text: "Some button text 1", callback_data: "1" }],
-          //     [{ text: "Some button text 2", callback_data: "2" }],
-          //     [{ text: "Some button text 3", callback_data: "3" }],
-          //   ],
-          // });
-          var isAuth = await isAuthorizedClient(msg.chat.id);
-          //console.log(isAuth);
-          // console.log(isAuth);
-          var dsource = await getDataSource(msg.chat.id);
-          console.log(console);
-          if (isAuth) bot.sendMessage(msg.chat.id, "I am alive!");
-          //JSON.stringify(dsource)
-          //  <a href="https://t.me/YOUR_BOT?start=image-123456789">image name</a>
-          else
+          var isAuth = await isAuthorizedClient(id);
+          if (!isAuth)
             bot.sendMessage(
-              msg.chat.id,
+              id,
               "Please use /connect to link your <b>GoogleFit🏃‍♂️</b> account first.",
               { parse_mode: "HTML" }
             );
-        //GitHub, [11/23/2021 10:57 AM] Please use /connect to link your GitHub account first.
+          else
+            bot.sendMessage(
+              id,
+              "Please use /menu to view what <b>WellHealth</b> 🤖 can do",
+              { parse_mode: "HTML" }
+            );
+          break;
       }
       // Save the message
       await db
@@ -563,7 +856,136 @@ bot.on("message", (msg) => {
 bot.on("callback_query", function (msg) {
   (async () => {
     try {
+      console.log("callback_query");
+      var id = msg.from.id;
       switch (msg.data) {
+        case "BM":
+          bot.answerCallbackQuery(msg.id, "📏", { show_alert: false });
+
+          var isAuth = await isAuthorizedClient(id);
+          if (!isAuth)
+            bot.sendMessage(
+              id,
+              "Please use /connect to link your <b>GoogleFit🏃‍♂️</b> account first.",
+              { parse_mode: "HTML" }
+            );
+          else {
+            var bodyMenu = JSON.stringify({
+              inline_keyboard: [
+                [
+                  { text: "Weight ⚖️", callback_data: "BM_W" },
+                  { text: "Height 📐", callback_data: "BM_H" },
+                  { text: "Body fat 🥩", callback_data: "BM_F" },
+                ],
+                [{ text: "Main menu 🏠", callback_data: "BM_Home" }],
+              ],
+            });
+            bot.sendMessage(
+              id,
+              "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
+              { reply_markup: bodyMenu, parse_mode: "HTML" }
+            );
+          }
+
+          break;
+
+        case "BM_Home":
+          bot.answerCallbackQuery(msg.id, "🏠", { show_alert: false });
+
+          var isAuth = await isAuthorizedClient(id);
+          if (!isAuth)
+            bot.sendMessage(
+              id,
+              "Please use /connect to link your <b>GoogleFit🏃‍♂️</b> account first.",
+              { parse_mode: "HTML" }
+            );
+          else {
+            var mainMenu = JSON.stringify({
+              inline_keyboard: [
+                [
+                  { text: "Body measurements 📏", callback_data: "BM" },
+                  { text: "Nutrition 🍔", callback_data: "NT" },
+                ],
+                [
+                  { text: "Activity 🚴‍♀️", callback_data: "AC" },
+                  { text: "Vitals 🩺", callback_data: "VT" },
+                ],
+              ],
+            });
+            bot.sendMessage(
+              id,
+              "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
+              { reply_markup: mainMenu, parse_mode: "HTML" }
+            );
+          }
+
+          break;
+        case "BM_W":
+          bot.answerCallbackQuery(msg.id, "⚖️", { show_alert: false });
+
+          var isAuth = await isAuthorizedClient(id);
+
+          forceReply = JSON.stringify({
+            force_reply: true,
+            input_field_placeholder: "Weight (KG)",
+          });
+          if (!isAuth)
+            bot.sendMessage(
+              id,
+              "Please use /connect to link your <b>GoogleFit🏃‍♂️</b> account first.",
+              { parse_mode: "HTML" }
+            );
+          else {
+            bot.sendMessage(id, "Please enter your weight 👇", {
+              reply_markup: forceReply,
+              parse_mode: "HTML",
+            });
+          }
+          break;
+        case "BM_H":
+          bot.answerCallbackQuery(msg.id, "📐", { show_alert: false });
+
+          var isAuth = await isAuthorizedClient(id);
+
+          forceReply = JSON.stringify({
+            force_reply: true,
+            input_field_placeholder: "Height (CM)",
+          });
+          if (!isAuth)
+            bot.sendMessage(
+              id,
+              "Please use /connect to link your <b>GoogleFit🏃‍♂️</b> account first.",
+              { parse_mode: "HTML" }
+            );
+          else {
+            bot.sendMessage(id, "Please enter your height 👇", {
+              reply_markup: forceReply,
+              parse_mode: "HTML",
+            });
+          }
+          break;
+        case "BM_F":
+          bot.answerCallbackQuery(msg.id, "🥩", { show_alert: false });
+
+          var isAuth = await isAuthorizedClient(id);
+
+          forceReply = JSON.stringify({
+            force_reply: true,
+            input_field_placeholder: "Fat (%)",
+          });
+          if (!isAuth)
+            bot.sendMessage(
+              id,
+              "Please use /connect to link your <b>GoogleFit🏃‍♂️</b> account first.",
+              { parse_mode: "HTML" }
+            );
+          else {
+            bot.sendMessage(id, "Please enter your fat 👇", {
+              reply_markup: forceReply,
+              parse_mode: "HTML",
+            });
+          }
+          break;
         case "1":
           // bot.sendMessage(msg.from.id, "I am alive 1!");
           bot.answerCallbackQuery(msg.id, "You sent 1", { show_alert: false });
@@ -579,7 +1001,6 @@ bot.on("callback_query", function (msg) {
       bot.sendMessage(msg.chat.id, error);
     }
   })();
-  console.log(msg);
 });
 
 // bot.onText(/\/connect/, (msg) => {

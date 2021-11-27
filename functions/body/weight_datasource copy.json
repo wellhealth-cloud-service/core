@@ -1,0 +1,20 @@
+{
+    "dataStreamId": "raw:com.google.weight:645959496688:user_input",
+    "dataStreamName": "user_input",
+    "type": "raw",
+    "dataType": {
+        "name": "com.google.weight",
+        "field": [
+            {
+                "name": "weight",
+                "format": "floatPoint"
+            }
+        ]
+    },
+    "application": {
+        "version": "1",
+        "detailsUrl": "https://t.me/wellhealthbot?start",
+        "name": "WellHealth Bot"
+    },
+    "dataQualityStandard": []
+}

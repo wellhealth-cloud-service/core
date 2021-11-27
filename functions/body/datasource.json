@@ -1,0 +1,78 @@
+{
+    "dataSource": [
+        {
+            "dataStreamId": "derived:com.google.calories.bmr:com.google.android.gms:merged",
+            "dataStreamName": "merged",
+            "type": "derived",
+            "dataType": {
+                "name": "com.google.calories.bmr",
+                "field": [
+                    {
+                        "name": "calories",
+                        "format": "floatPoint"
+                    }
+                ]
+            },
+            "application": {
+                "packageName": "com.google.android.gms"
+            },
+            "dataQualityStandard": []
+        },
+        {
+            "dataStreamId": "derived:com.google.calories.expended:com.google.android.gms:merge_calories_expended",
+            "dataStreamName": "merge_calories_expended",
+            "type": "derived",
+            "dataType": {
+                "name": "com.google.calories.expended",
+                "field": [
+                    {
+                        "name": "calories",
+                        "format": "floatPoint"
+                    }
+                ]
+            },
+            "application": {
+                "packageName": "com.google.android.gms"
+            },
+            "dataQualityStandard": []
+        },
+        {
+            "dataStreamId": "derived:com.google.weight:com.google.android.gms:merge_weight",
+            "dataStreamName": "merge_weight",
+            "type": "derived",
+            "dataType": {
+                "name": "com.google.weight",
+                "field": [
+                    {
+                        "name": "weight",
+                        "format": "floatPoint"
+                    }
+                ]
+            },
+            "application": {
+                "packageName": "com.google.android.gms"
+            },
+            "dataQualityStandard": []
+        },
+        {
+            "dataStreamId": "raw:com.google.weight:645959496688:user_input",
+            "dataStreamName": "user_input",
+            "type": "raw",
+            "dataType": {
+                "name": "com.google.weight",
+                "field": [
+                    {
+                        "name": "weight",
+                        "format": "floatPoint"
+                    }
+                ]
+            },
+            "application": {
+                "version": "1.0",
+                "detailsUrl": "https://t.me/wellhealthbot?start",
+                "name": "WellHealth Bot"
+            },
+            "dataQualityStandard": []
+        }
+    ]
+}

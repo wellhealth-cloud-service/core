@@ -25,6 +25,7 @@
     "googleapis": "^89.0.0",
     "nano-time": "^1.0.0",
     "node-telegram-bot-api": "^0.54.0",
+    "performance-now": "^2.1.0",
     "uuid": "^8.3.2"
   },
   "devDependencies": {

@@ -1,0 +1,28 @@
+{
+    "dataStreamName": "user_input",
+    "type": "raw",
+    "dataType": {
+        "name": "com.google.nutrition",
+        "field": [
+            {
+                "name": "nutrients",
+                "format": "map"
+            },
+            {
+                "name": "meal_type",
+                "format": "integer",
+                "optional": true
+            },
+            {
+                "name": "food_item",
+                "format": "string",
+                "optional": true
+            }
+        ]
+    },
+    "application": {
+        "detailsUrl": "https://t.me/wellhealthbot?start",
+        "name": "WellHealth Bot",
+        "version": "1.0"
+    }
+}

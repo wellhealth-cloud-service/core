@@ -1,0 +1,18 @@
+{
+    "dataStreamId": "derived:com.google.height:com.google.android.gms:merge_height",
+    "dataStreamName": "merge_height",
+    "type": "derived",
+    "dataType": {
+        "name": "com.google.height",
+        "field": [
+            {
+                "name": "height",
+                "format": "floatPoint"
+            }
+        ]
+    },
+    "application": {
+        "packageName": "com.google.android.gms"
+    },
+    "dataQualityStandard": []
+}

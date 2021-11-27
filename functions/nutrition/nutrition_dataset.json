@@ -1,0 +1,32 @@
+{
+    "minStartTimeNs": "1637951928905590600",
+    "maxEndTimeNs": "1637951929907695000",
+    "dataSourceId": "raw:com.google.nutrition:com.google.android.apps.fitness:user_input",
+    "point": [
+        {
+            "startTimeNanos": "1637951928905590600",
+            "endTimeNanos": "1637951929907695000",
+            "dataTypeName": "com.google.nutrition",
+            "value": [
+                {
+                    "mapVal": [],
+                    "mapVal": [
+                        {
+                            "key": "calories",
+                            "value": {
+                                "fpVal": 356
+                            }
+                        }
+                    ]
+                },
+                {
+                    "mapVal": []
+                },
+                {
+                    "stringVal": "Chiken",
+                    "mapVal": []
+                }
+            ]
+        }
+    ]
+}
