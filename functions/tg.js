@@ -25,6 +25,7 @@ const fatDataSource = require("./body/fat_datasource.json");
 const fatDataSet = require("./body/fat_dataset.json");
 const nutritionDataSource = require("./nutrition/nutrition_datasource.json");
 const nutritionDataSet = require("./nutrition/nutrition_dataset.json");
+const { atob } = require("buffer");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -93,192 +94,41 @@ const app = express();
 app.use(express.json());
 
 //https://www.googleapis.com/oauth2/v1/tokeninfo?access_token=accessToken
-// TODO: manage refresh_token
-isAuthorizedClient = async (id) => {
+
+renewAccessToken = async (tokens) => {
   try {
-    const snapshot = await db
-      .collection("oauth")
-      // .where(u'photos.id1', u'==', True)
-      // .where("chat", "array-contains", { id: 89370592 })
-      // .where("chat.id", "array-contains", ["89370592"])
-      .where("id", "==", id)
-      .orderBy("message_id", "asc")
-      .limitToLast(1)
-      // .select("message_id")
-      // .limit(1)
-      .get();
-    const docs = [];
-    snapshot.docs.map((doc) => docs.push(doc.data())); //.limitToFirst(1);
-    // console.log(docs[0].access_token);
+    oauth2Client.setCredentials(tokens);
+    const access = await oauth2Client.getAccessToken();
 
-    // expires_in
-    // OPTIONAL.  The lifetime in seconds of the access token.  For
-    // example, the value "3600" denotes that the access token will
-    // expire in one hour from the time the response was generated.
+    return access.token;
+  } catch (error) {
+    return null;
+  }
+};
 
-    // axios
-    //   .get("https://www.googleapis.com/oauth2/v1/tokeninfo", {
-    //     params: {
-    //       access_token: docs[0].access_token,
-    //     },
-    //   })
-    //   .then(function (response) {
-    //     console.log(response.data);
-    //   })
-    //   .catch(function (error) {
-    //     console.log("error");
-    //   })
-    //   .then(function () {
-    //     // always executed
-    //   });
-
-    if (docs.length == 0) return false;
-
+checkAccessTokenValid = async (access_token) => {
+  try {
     const options = {
       method: "get",
       url: "https://www.googleapis.com/oauth2/v1/tokeninfo",
       params: {
-        access_token: docs[0].access_token,
+        access_token: access_token,
         // access_token: "1",
       },
     };
 
     const res = await axios(options);
     return true;
-    // return typeof res.data !== "undefined" ? true : false;
+  } catch (error) {
+    return false;
+  }
+};
 
-    // axios(options)
-    //   .then(function (response) {
-    //     //response.data
-    //     console.log("true");
-    //     return true;
-    //   })
-    //   .catch(function (error) {
-    //     console.log("error");
-    //     return false;
-    //   })
-    //   .then(function () {
-    //     // always executed
-    //     //return false;
-    //   });
-
-    // const params = new URLSearchParams();
-    // params.append("access_token", docs[0].access_token);
-
-    // const params = new URLSearchParams({
-    //   access_token: docs[0].access_token,
-    // }).toString();
-    //const url = "https://www.googleapis.com/oauth2/v1/tokeninfo";
-
-    // const url = "https://www.googleapis.com/oauth2/v1/tokeninfo?" + params;
-
-    // var access_token = docs[0].access_token;
-
-    // var data = {};
-
-    // const params = new URLSearchParams({
-    //   access_token: docs[0].access_token,
-    // }).toString();
-
-    // const url = "https://www.googleapis.com/oauth2/v1/tokeninfo?" + params;
-    // console.log(url);
-
-    // const tokenSend = { access_token };
-
-    // axios
-    //   .get("https://www.googleapis.com/oauth2/v1/tokeninfo/", tokenSend)
-    //   .then((res) => {
-    //     this.Info = JSON.parse(res.data);
-    //   })
-    //   .catch((err) => {
-    //     console.log("err");
-    //   });
-
-    // axios
-    //   .post(`https://www.googleapis.com/oauth2/v1/tokeninfo?`, null, {
-    //     params: {
-    //       access_token,
-    //     },
-    //   })
-    //   .then((response) => console.log("response"))
-    //   .catch((err) => console.log("error"));
-
-    // axios
-    //   .get("https://www.googleapis.com/oauth2/v1/tokeninfo?", params)
-    //   .then(function (response) {
-    //     console.log("response");
-    //   })
-    //   .catch(function (error) {
-    //     console.log("error");
-    //   })
-    //   .then(function () {
-    //     // always executed
-    //   });
-
-    // axios.post('http://something.com/', querystring.stringify({ foo: 'bar' }));
-
-    // const options = {
-    //   method: "get",
-    //   // headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    //   data: {},
-    //   url: url,
-    //   // params: params.toString(),
-    // };
-
-    // axios(options)
-    //   .then(function (response) {
-    //     console.log("response");
-    //   })
-    //   .catch(function (error) {
-    //     console.log("error");
-    //   })
-    //   .then(function () {
-    //     // always executed
-    //   });
-
-    // Optionally the request above could also be done as
-    // axios
-    //   .get("/user", {
-    //     params: {
-    //       ID: 12345,
-    //     },
-    //   })
-    //   .then(function (response) {
-    //     console.log(response);
-    //   })
-    //   .catch(function (error) {
-    //     console.log(error);
-    //   })
-    //   .then(function () {
-    //     // always executed
-    //   });
-
-    // axios.get("/user/12345").then(function (response) {
-    //   console.log(response.data);
-    //   console.log(response.status);
-    //   console.log(response.statusText);
-    //   console.log(response.headers);
-    //   console.log(response.config);
-    // });
-
-    // const options = {
-    //   method: 'POST',
-    //   headers: { 'content-type': 'application/x-www-form-urlencoded' },
-    //   data: qs.stringify(data),
-    //   url,
-    // };
-    // axios(options);
-
-    // const querystring = require('querystring');
-    // axios.post('http://something.com/', querystring.stringify({ foo: 'bar' }));
-
-    // const snapshot = await db.collection("oauth").where("id", "==", id).orderBy("").get();
-    // const docs = [];
-    // snapshot.docs.map((doc) => docs.push(doc.data())); //.limitToFirst(1);
-
-    // var jsonObj = JSON.stringify(docs);
-
-    // console.log(docs);
+// TODO: manage refresh_token
+isAuthorizedClient = async (id) => {
+  try {
+    var access_token = await getAccessToken(id);
+    return access_token !== null;
   } catch (error) {
     return false;
   }
@@ -295,7 +145,13 @@ getAccessToken = async (id) => {
     const docs = [];
     snapshot.docs.map((doc) => docs.push(doc.data())); //.limitToFirst(1);
 
-    return docs.length == 0 ? null : docs[0].access_token;
+    if (docs.length == 0) return null;
+    var access_token = docs[0].access_token;
+
+    if (await checkAccessTokenValid(access_token)) return access_token;
+
+    access_token = await renewAccessToken(docs[0]);
+    return access_token;
   } catch (error) {
     return null;
   }
