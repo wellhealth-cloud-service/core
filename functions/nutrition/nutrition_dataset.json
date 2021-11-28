@@ -7,9 +7,9 @@
             "startTimeNanos": "1637951928905590600",
             "endTimeNanos": "1637951929907695000",
             "dataTypeName": "com.google.nutrition",
+            "originDataSourceId": "raw:com.google.nutrition:1d61cacd:user_input",
             "value": [
                 {
-                    "mapVal": [],
                     "mapVal": [
                         {
                             "key": "calories",
@@ -23,8 +23,7 @@
                     "mapVal": []
                 },
                 {
-                    "stringVal": "Chiken",
-                    "mapVal": []
+                    "stringVal": "Chiken"
                 }
             ]
         }

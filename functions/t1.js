@@ -64,7 +64,13 @@ console.log(d2.toString());
 console.log((theBigDay.getTime() + performanceNow()) * 1000000);
 console.log((theBigDay2.getTime() + performanceNow()) * 1000000);
 console.log("***");
+
 console.log(now());
+console.log(now());
+setTimeout(function () {
+  console.log(now());
+}, 1000);
+
 // now(); // '1476742925219947761' (returns a string)
 
 // setTimeout(function () {

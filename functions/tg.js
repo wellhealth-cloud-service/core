@@ -15,6 +15,7 @@ const querystring = require("querystring");
 const qs = require("qs");
 const { iam } = require("googleapis/build/src/apis/iam");
 const { datastore } = require("googleapis/build/src/apis/datastore");
+const now = require("nano-time");
 // datasources and datasets
 const weightDataSource = require("./body/weight_datasource.json");
 const weightDataSet = require("./body/weight_dataset.json");
@@ -22,6 +23,8 @@ const heightDataSource = require("./body/height_datasource.json");
 const heightDataSet = require("./body/height_dataset.json");
 const fatDataSource = require("./body/fat_datasource.json");
 const fatDataSet = require("./body/fat_dataset.json");
+const nutritionDataSource = require("./nutrition/nutrition_datasource.json");
+const nutritionDataSet = require("./nutrition/nutrition_dataset.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -298,6 +301,89 @@ getAccessToken = async (id) => {
   }
 };
 
+createNutritionDataSet = async (id, meal) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "com.google.nutrition"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) {
+      dataStreamId = await createNutritionDataSource(id);
+      if (dataStreamId === null) return null;
+    }
+
+    const [food, calorie] = meal.split("|");
+    var min = now();
+    var max = now();
+
+    var dataSet = nutritionDataSet;
+
+    dataSet.minStartTimeNs = min;
+    dataSet.maxEndTimeNs = max;
+    dataSet.point[0].startTimeNanos = min;
+    dataSet.point[0].endTimeNanos = max;
+    dataSet.dataSourceId = dataStreamId;
+    dataSet.point[0].value[0].mapVal[0].value.fpVal = parseFloat(calorie);
+    dataSet.point[0].value[2].stringVal = food;
+    dataSet.point[0].originDataSourceId = dataStreamId;
+
+    const options = {
+      method: "patch",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/${min}-${max}`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSet,
+    };
+
+    const res = await axios(options);
+    return true;
+  } catch (error) {
+    console.log(error);
+    return null;
+  }
+};
+
+createNutritionDataSource = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataSource = nutritionDataSource;
+
+    const options = {
+      method: "post",
+      url: "https://www.googleapis.com/fitness/v1/users/me/dataSources",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSource,
+    };
+
+    const res = await axios(options);
+    return res.data.dataStreamId;
+  } catch (error) {
+    console.log(error.response);
+    return null;
+  }
+};
+
 createFatDataSource = async (id) => {
   try {
     var accessToken = await getAccessToken(id);
@@ -348,14 +434,23 @@ createFatDataSet = async (id, fat) => {
       if (dataStreamId === null) return null;
     }
 
+    var min = now();
+    var max = now();
+
     var dataSet = fatDataSet;
+
+    dataSet.minStartTimeNs = min;
+    dataSet.maxEndTimeNs = max;
+    dataSet.point[0].startTimeNanos = min;
+    dataSet.point[0].endTimeNanos = max;
+
     dataSet.dataSourceId = dataStreamId;
     dataSet.point[0].value[0].fpVal = parseFloat(fat);
     dataSet.point[0].originDataSourceId = dataStreamId;
 
     const options = {
       method: "patch",
-      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/1637951928905590600-1637951929907695000`,
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/${min}-${max}`,
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
@@ -420,14 +515,23 @@ createHeightDataSet = async (id, height) => {
       if (dataStreamId === null) return null;
     }
 
+    var min = now();
+    var max = now();
+
     var dataSet = heightDataSet;
+
+    dataSet.minStartTimeNs = min;
+    dataSet.maxEndTimeNs = max;
+    dataSet.point[0].startTimeNanos = min;
+    dataSet.point[0].endTimeNanos = max;
+
     dataSet.dataSourceId = dataStreamId;
     dataSet.point[0].value[0].fpVal = parseFloat(height);
     dataSet.point[0].originDataSourceId = dataStreamId;
 
     const options = {
       method: "patch",
-      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/1637951928905590600-1637951929907695000`,
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/${min}-${max}`,
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
@@ -492,14 +596,23 @@ createWeightDataSet = async (id, weight) => {
       if (dataStreamId === null) return null;
     }
 
+    var min = now();
+    var max = now();
+
     var dataSet = weightDataSet;
+
+    dataSet.minStartTimeNs = min;
+    dataSet.maxEndTimeNs = max;
+    dataSet.point[0].startTimeNanos = min;
+    dataSet.point[0].endTimeNanos = max;
+
     dataSet.dataSourceId = dataStreamId;
     dataSet.point[0].value[0].fpVal = parseFloat(weight);
     dataSet.point[0].originDataSourceId = dataStreamId;
 
     const options = {
       method: "patch",
-      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/1637951928905590600-1637951929907695000`,
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/${min}-${max}`,
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
@@ -686,6 +799,22 @@ bot.on("message", (msg) => {
           : msg.reply_to_message.text;
       // console.log(txt);
       switch (txt) {
+        case "Please enter your meal 👇":
+          var res = await createNutritionDataSet(id, msg.text);
+          if (res) bot.sendMessage(id, "Meal saved ✅");
+          else bot.sendMessage(id, "Meal not saved ❌");
+          var bodyMenu = JSON.stringify({
+            inline_keyboard: [
+              [{ text: "Meal 🍗", callback_data: "NT_M" }],
+              [{ text: "Main 🏠", callback_data: "Home" }],
+            ],
+          });
+          bot.sendMessage(
+            id,
+            "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
+            { reply_markup: bodyMenu, parse_mode: "HTML" }
+          );
+          break;
         case "Please enter your fat 👇":
           console.log("FAT");
           var res = await createFatDataSet(id, msg.text);
@@ -698,7 +827,7 @@ bot.on("message", (msg) => {
                 { text: "Height 📐", callback_data: "BM_H" },
                 { text: "Body fat 🥩", callback_data: "BM_F" },
               ],
-              [{ text: "Main menu 🏠", callback_data: "BM_Home" }],
+              [{ text: "Main 🏠", callback_data: "Home" }],
             ],
           });
           bot.sendMessage(
@@ -718,7 +847,7 @@ bot.on("message", (msg) => {
                 { text: "Height 📐", callback_data: "BM_H" },
                 { text: "Body fat 🥩", callback_data: "BM_F" },
               ],
-              [{ text: "Main menu 🏠", callback_data: "BM_Home" }],
+              [{ text: "Main 🏠", callback_data: "Home" }],
             ],
           });
           bot.sendMessage(
@@ -738,7 +867,7 @@ bot.on("message", (msg) => {
                 { text: "Height 📐", callback_data: "BM_H" },
                 { text: "Body fat 🥩", callback_data: "BM_F" },
               ],
-              [{ text: "Main menu 🏠", callback_data: "BM_Home" }],
+              [{ text: "Main 🏠", callback_data: "Home" }],
             ],
           });
           bot.sendMessage(
@@ -813,7 +942,7 @@ bot.on("message", (msg) => {
                 ],
                 [
                   { text: "Activity 🚴‍♀️", callback_data: "AC" },
-                  { text: "Vitals 🩺", callback_data: "VT" },
+                  { text: "Vitals 🫀", callback_data: "VT" },
                 ],
               ],
             });
@@ -859,6 +988,31 @@ bot.on("callback_query", function (msg) {
       console.log("callback_query");
       var id = msg.from.id;
       switch (msg.data) {
+        case "NT":
+          bot.answerCallbackQuery(msg.id, "🍔", { show_alert: false });
+
+          var isAuth = await isAuthorizedClient(id);
+          if (!isAuth)
+            bot.sendMessage(
+              id,
+              "Please use /connect to link your <b>GoogleFit🏃‍♂️</b> account first.",
+              { parse_mode: "HTML" }
+            );
+          else {
+            var bodyMenu = JSON.stringify({
+              inline_keyboard: [
+                [{ text: "Meal 🍗", callback_data: "NT_M" }],
+                [{ text: "Main 🏠", callback_data: "Home" }],
+              ],
+            });
+            bot.sendMessage(
+              id,
+              "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
+              { reply_markup: bodyMenu, parse_mode: "HTML" }
+            );
+          }
+
+          break;
         case "BM":
           bot.answerCallbackQuery(msg.id, "📏", { show_alert: false });
 
@@ -877,7 +1031,7 @@ bot.on("callback_query", function (msg) {
                   { text: "Height 📐", callback_data: "BM_H" },
                   { text: "Body fat 🥩", callback_data: "BM_F" },
                 ],
-                [{ text: "Main menu 🏠", callback_data: "BM_Home" }],
+                [{ text: "Main 🏠", callback_data: "Home" }],
               ],
             });
             bot.sendMessage(
@@ -889,7 +1043,7 @@ bot.on("callback_query", function (msg) {
 
           break;
 
-        case "BM_Home":
+        case "Home":
           bot.answerCallbackQuery(msg.id, "🏠", { show_alert: false });
 
           var isAuth = await isAuthorizedClient(id);
@@ -908,7 +1062,7 @@ bot.on("callback_query", function (msg) {
                 ],
                 [
                   { text: "Activity 🚴‍♀️", callback_data: "AC" },
-                  { text: "Vitals 🩺", callback_data: "VT" },
+                  { text: "Vitals 🫀", callback_data: "VT" },
                 ],
               ],
             });
@@ -981,6 +1135,28 @@ bot.on("callback_query", function (msg) {
             );
           else {
             bot.sendMessage(id, "Please enter your fat 👇", {
+              reply_markup: forceReply,
+              parse_mode: "HTML",
+            });
+          }
+          break;
+        case "NT_M":
+          bot.answerCallbackQuery(msg.id, "🍗", { show_alert: false });
+
+          var isAuth = await isAuthorizedClient(id);
+
+          forceReply = JSON.stringify({
+            force_reply: true,
+            input_field_placeholder: "Food item | Calories consumed (KCal)",
+          });
+          if (!isAuth)
+            bot.sendMessage(
+              id,
+              "Please use /connect to link your <b>GoogleFit🏃‍♂️</b> account first.",
+              { parse_mode: "HTML" }
+            );
+          else {
+            bot.sendMessage(id, "Please enter your meal 👇", {
               reply_markup: forceReply,
               parse_mode: "HTML",
             });
