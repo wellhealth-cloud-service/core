@@ -7,6 +7,7 @@
             "startTimeNanos": "1637951928905590600",
             "endTimeNanos": "1637951929907695000",
             "dataTypeName": "com.google.body.fat.percentage",
+            "originDataSourceId": "raw:com.google.body.fat.percentage:com.google.android.apps.fitness:user_input",
             "value": [
                 {
                     "fpVal": 19,

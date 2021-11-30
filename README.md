@@ -28,3 +28,7 @@ https://t.me/wellhealthbot?start=hi
 # Oauth consent screen
 
 https://console.cloud.google.com/apis/credentials/consent?project=spring-duality-330117
+
+# OAuth 2.0 Scopes for Google APIs
+
+https://developers.google.com/identity/protocols/oauth2/scopes

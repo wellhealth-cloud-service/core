@@ -1,0 +1,18 @@
+{
+    "dataStreamName": "user_input",
+    "type": "raw",
+    "dataType": {
+        "name": "me.t.wellhealthbot.glucose",
+        "field": [
+            {
+                "name": "glucose",
+                "format": "integer"
+            }
+        ]
+    },
+    "application": {
+        "detailsUrl": "https://t.me/wellhealthbot?start",
+        "name": "WellHealth Bot",
+        "version": "1.0"
+    }
+}

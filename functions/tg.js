@@ -5,6 +5,7 @@ const express = require("express");
 const { json } = require("express");
 const { google } = require("googleapis");
 const clientSecret = require("./auth/clientSecret.json");
+const clientSecret2 = require("./auth/clientSecret_ml.json");
 const fs = require("fs");
 const { Storage } = require("@google-cloud/storage");
 const serviceAccount = require("./auth/serviceAccount.json");
@@ -16,6 +17,8 @@ const qs = require("qs");
 const { iam } = require("googleapis/build/src/apis/iam");
 const { datastore } = require("googleapis/build/src/apis/datastore");
 const now = require("nano-time");
+const performanceNow = require("performance-now");
+const { atob } = require("buffer");
 // datasources and datasets
 const weightDataSource = require("./body/weight_datasource.json");
 const weightDataSet = require("./body/weight_dataset.json");
@@ -25,7 +28,25 @@ const fatDataSource = require("./body/fat_datasource.json");
 const fatDataSet = require("./body/fat_dataset.json");
 const nutritionDataSource = require("./nutrition/nutrition_datasource.json");
 const nutritionDataSet = require("./nutrition/nutrition_dataset.json");
-const { atob } = require("buffer");
+const genderDataSource = require("./body/gender_datasource.json");
+const genderDataSet = require("./body/gender_dataset.json");
+const ageDataSource = require("./body/age_datasource.json");
+const ageDataSet = require("./body/age_dataset.json");
+const smokerDataSource = require("./body/smoker_datasource.json");
+const smokerDataSet = require("./body/smoker_dataset.json");
+const alcoholicDataSource = require("./body/alcoholic_datasource.json");
+const alcoholicDataSet = require("./body/alcoholic_dataset.json");
+const cholesterolDataSource = require("./body/cholesterol_datasource.json");
+const cholesterolDataSet = require("./body/cholesterol_dataset.json");
+const activeDataSource = require("./body/active_datasource.json");
+const activeDataSet = require("./body/active_dataset.json");
+const glucoseDataSource = require("./body/glucose_datasource.json");
+const glucoseDataSet = require("./body/glucose_dataset.json");
+const bloodhDataSource = require("./body/bloodh_datasource.json");
+const bloodhDataSet = require("./body/bloodh_dataset.json");
+const bloodlDataSource = require("./body/bloodl_datasource.json");
+const bloodlDataSet = require("./body/bloodl_dataset.json");
+const tipsData = require("./tips/tips.json");
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
@@ -40,6 +61,18 @@ const oauth2Client = new google.auth.OAuth2(
   clientSecret.web.client_secret,
   clientSecret.web.redirect_uris
 );
+
+const oauth2Client2 = new google.auth.OAuth2(
+  clientSecret2.web.client_id,
+  clientSecret2.web.client_secret,
+  clientSecret2.web.redirect_uris
+);
+
+// AI Platform Training & Prediction API
+const scopes2 = [
+  "https://www.googleapis.com/auth/cloud-platform", // View and manage your data across Google Cloud Platform services
+  "https://www.googleapis.com/auth/cloud-platform.read-only", //View your data across Google Cloud Platform services
+];
 
 // const fit = google.fitness({
 //   varsion: "v2",
@@ -79,7 +112,7 @@ const scopes = [
 ];
 
 const TOKEN = botConfig.api_token;
-const url = "https://6516-142-137-165-45.ngrok.io";
+const url = "https://f685-109-231-73-218.ngrok.io";
 const port = 8090;
 
 // No need to pass any parameters as we will handle the updates with Express
@@ -99,7 +132,18 @@ renewAccessToken = async (tokens) => {
   try {
     oauth2Client.setCredentials(tokens);
     const access = await oauth2Client.getAccessToken();
+    console.log(`GOOGLEFIT \n${access.token}`);
+    return access.token;
+  } catch (error) {
+    return null;
+  }
+};
 
+renewAccessToken2 = async (tokens) => {
+  try {
+    oauth2Client2.setCredentials(tokens);
+    const access = await oauth2Client2.getAccessToken();
+    console.log(`GOOGLEAI \n${access.token}`);
     return access.token;
   } catch (error) {
     return null;
@@ -134,6 +178,38 @@ isAuthorizedClient = async (id) => {
   }
 };
 
+isAuthorizedClient2 = async (id) => {
+  try {
+    var access_token = await getAccessToken2(id);
+    return access_token !== null;
+  } catch (error) {
+    return false;
+  }
+};
+
+getAccessToken2 = async (id) => {
+  try {
+    const snapshot = await db
+      .collection("oauth2")
+      .where("id", "==", id)
+      .orderBy("message_id", "asc")
+      .limitToLast(1)
+      .get();
+    const docs = [];
+    snapshot.docs.map((doc) => docs.push(doc.data())); //.limitToFirst(1);
+
+    if (docs.length == 0) return null;
+    var access_token = docs[0].access_token;
+
+    if (await checkAccessTokenValid(access_token)) return access_token;
+
+    access_token = await renewAccessToken2(docs[0]);
+    return access_token;
+  } catch (error) {
+    return null;
+  }
+};
+
 getAccessToken = async (id) => {
   try {
     const snapshot = await db
@@ -152,6 +228,719 @@ getAccessToken = async (id) => {
 
     access_token = await renewAccessToken(docs[0]);
     return access_token;
+  } catch (error) {
+    return null;
+  }
+};
+
+getAnalysis = async (id) => {
+  try {
+    var accessToken = await getAccessToken2(id);
+    if (accessToken === null) return null;
+
+    var weight = await getWeightDataSet(id);
+    var height = await getHeightDataSet(id);
+    var gender = await getGenderDataSet(id);
+    var age = await getAgeDataSet(id);
+    var smoker = await getSmokerDataSet(id);
+    var alcoholic = await getAlcoholicDataSet(id);
+    var cholesterol = await getCholesterolDataSet(id);
+    var active = await getActiveDataSet(id);
+    var glucose = await getGlucoseDataSet(id);
+    var bloodh = await getBloodhDataSet(id);
+    var bloodl = await getBloodlDataSet(id);
+    var fat = await getFatDataSet(id);
+    var calories = await getNutritionDataSet(id);
+
+    const payload = JSON.stringify({
+      payload: {
+        row: {
+          values: [
+            bloodh,
+            parseInt(weight),
+            smoker,
+            parseInt(height.toString().replace(".", "")),
+            glucose,
+            cholesterol,
+            gender,
+            active,
+            bloodl,
+            alcoholic,
+            age * 365,
+          ],
+          columnSpecIds: [
+            "5495070493822156800",
+            "883384475394768896",
+            "2036305980001615872",
+            "2612766732305039360",
+            "3189227484608462848",
+            "6071531246125580288",
+            "6647991998429003776",
+            "8377374255339274240",
+            "1459845227698192384",
+            "7224452750732427264",
+            "3765688236911886336",
+          ],
+        },
+      },
+    });
+
+    // [weight (kg) / height (cm) / height (cm)] x 10,000
+
+    var bmi = weight / (height * height);
+    var bmiResult = "";
+    //     BMI Ranges
+    // BMI	Category
+    // < 16.0	Severely Underweight
+    // 16.0 - 18.4	Underweight
+    // 18.5 - 24.9	Normal
+    // 25.0 - 29.9	Overweight
+    // 30.0 - 34.9	Moderately Obese
+    // 35.0 - 39.9	Severely Obese
+    // > 40.0	Morbidly Obese
+    // if (bmi < 16) bmiResult = "Severely Underweight";
+    // else if (bmi >= 16 && bmi <= 18.4) bmiResult = "Underweight";
+    // else if (bmi >= 18.5 && bmi <= 24.9) bmiResult = "Normal";
+    // else if (bmi >= 25 && bmi <= 29.9) bmiResult = "Overweight";
+    // else if (bmi >= 30 && bmi <= 34.9) bmiResult = "Moderately Obese";
+    // else if (bmi >= 35 && bmi <= 39.9) bmiResult = "Severely Obese";
+    // else if (bmi >= 40) bmiResult = "Morbidly Obese";
+
+    if (bmi < 16) bmiResult = "🚨";
+    else if (bmi >= 16 && bmi <= 18.4) bmiResult = "⚠️";
+    else if (bmi >= 18.5 && bmi <= 24.9) bmiResult = "✅";
+    else if (bmi >= 25 && bmi <= 29.9) bmiResult = "⚠️";
+    else if (bmi >= 30 && bmi <= 34.9) bmiResult = "⚠️";
+    else if (bmi >= 35 && bmi <= 39.9) bmiResult = "🚨";
+    else if (bmi >= 40) bmiResult = "🚨";
+
+    const options = {
+      method: "post",
+      url: "https://automl.googleapis.com/v1beta1/projects/databatch/locations/us-central1/models/TBL511772085194850304:predict",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: payload,
+    };
+
+    const res = await axios(options);
+    // console.log(res.data.payload[0].tables.value.toFixed(2));
+    // res.data.payload.tables.value.toFixed(2)
+
+    var risk = res.data.payload[0].tables.value.toFixed(4) * 100;
+    var riskResult = "";
+
+    if (risk <= 25) riskResult = "✅";
+    else if (risk <= 45 && risk >= 26) riskResult = "⚠️";
+    else riskResult = "🚨";
+
+    var p = tipsData.Item.filter(
+      (a) => a.active == active.toString() && a.gender == gender.toString()
+    ).map((b) => b.Title);
+    var randomnumber = Math.floor(Math.random() * (p.length - 1 - 0 + 1)) + 0;
+    var tip = p[randomnumber];
+
+    var result = `<b>WellHealth</b> 🤖 analyzing 🧠 and reporting 📋 results are 👇 \n\n <b>Vital 🫀</b>\n Weight: ${weight} KG\n Height: ${height} M\n Fat: ${fat} %\n Gender: ${
+      gender === 1 ? "male" : "female"
+    } \n Age: ${age} Y \n Smoker: ${smoker === 0 ? "No" : "Yes"}\n Alcoholic: ${
+      alcoholic === 0 ? "No" : "Yes"
+    }\n Cholesterol: ${
+      cholesterol === 1 ? "Low" : cholesterol === 2 ? "Mid" : "High"
+    }\n Active: ${active === 0 ? "No" : "Yes"}\n Glucose: ${
+      glucose === 1 ? "Low" : glucose === 2 ? "Mid" : "High"
+    }\n Blood top: ${bloodh} \n Blood low: ${bloodl}\n\n <b>Nutrition 🍔</b>\n Calories consumed: ${calories} KCal \n\n <b>Analysis 🔍</b>\n Risk of CVD: ${
+      res.data.payload[0].tables.value.toFixed(4) * 100
+    } % ${riskResult}\n BMI: ${bmi.toFixed(
+      4
+    )} ${bmiResult} \n\n <b>Tip 🔔</b>\n ${tip}\n\n Back to /menu 🏠`;
+    // res.data.payload.tables.value.toFixed(2);
+    //x.toFixed(2)
+    return result;
+  } catch (error) {
+    return null;
+  }
+};
+
+getNutritionDataSet = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "com.google.nutrition"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) return null;
+
+    const theBigDay = new Date();
+    theBigDay.setFullYear(2021, 10, 01);
+    var min = theBigDay.getTime();
+    var max = new Date().getTime();
+
+    var data = JSON.stringify({
+      aggregateBy: [
+        {
+          dataSourceId: dataStreamId,
+        },
+      ],
+      bucketByTime: { durationMillis: max - min },
+      startTimeMillis: min,
+      endTimeMillis: max,
+    });
+
+    const options = {
+      method: "post",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataset:aggregate`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: data,
+    };
+
+    const res = await axios(options);
+    return res.data.bucket[0].dataset[0].point[0].value[0].mapVal[0].value
+      .fpVal;
+  } catch (error) {
+    return null;
+  }
+};
+
+getFatDataSet = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "com.google.body.fat.percentage"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) return null;
+
+    const theBigDay = new Date();
+    theBigDay.setFullYear(2021, 10, 01);
+    var min = (theBigDay.getTime() + performanceNow()) * 1000000;
+    var max = now();
+
+    const options = {
+      method: "get",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/${min}-${max}`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    };
+
+    const res = await axios(options);
+    var len = res.data.point.length - 1;
+    return res.data.point[len].value[0].fpVal;
+  } catch (error) {
+    return null;
+  }
+};
+
+getHeightDataSet = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "com.google.height"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) return null;
+
+    const theBigDay = new Date();
+    theBigDay.setFullYear(2021, 10, 01);
+    var min = (theBigDay.getTime() + performanceNow()) * 1000000;
+    var max = now();
+
+    const options = {
+      method: "get",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/${min}-${max}`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    };
+
+    const res = await axios(options);
+    var len = res.data.point.length - 1;
+    return res.data.point[len].value[0].fpVal;
+  } catch (error) {
+    return null;
+  }
+};
+
+getWeightDataSet = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "com.google.weight"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) return null;
+
+    const theBigDay = new Date();
+    theBigDay.setFullYear(2021, 10, 01);
+    var min = (theBigDay.getTime() + performanceNow()) * 1000000;
+    var max = now();
+
+    const options = {
+      method: "get",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/${min}-${max}`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    };
+
+    const res = await axios(options);
+    var len = res.data.point.length - 1;
+    return res.data.point[len].value[0].fpVal;
+  } catch (error) {
+    return null;
+  }
+};
+
+getGenderDataSet = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "me.t.wellhealthbot.gender"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) return null;
+
+    const theBigDay = new Date();
+    theBigDay.setFullYear(2021, 10, 01);
+    var min = (theBigDay.getTime() + performanceNow()) * 1000000;
+    var max = now();
+
+    const options = {
+      method: "get",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/${min}-${max}`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    };
+
+    const res = await axios(options);
+    var len = res.data.point.length - 1;
+    return res.data.point[len].value[0].intVal;
+  } catch (error) {
+    return null;
+  }
+};
+
+getAgeDataSet = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "me.t.wellhealthbot.age"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) return null;
+
+    const theBigDay = new Date();
+    theBigDay.setFullYear(2021, 10, 01);
+    var min = (theBigDay.getTime() + performanceNow()) * 1000000;
+    var max = now();
+
+    const options = {
+      method: "get",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/${min}-${max}`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    };
+
+    const res = await axios(options);
+    var len = res.data.point.length - 1;
+    return res.data.point[len].value[0].intVal;
+  } catch (error) {
+    return null;
+  }
+};
+
+getSmokerDataSet = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "me.t.wellhealthbot.smoker"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) return null;
+
+    const theBigDay = new Date();
+    theBigDay.setFullYear(2021, 10, 01);
+    var min = (theBigDay.getTime() + performanceNow()) * 1000000;
+    var max = now();
+
+    const options = {
+      method: "get",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/${min}-${max}`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    };
+
+    const res = await axios(options);
+    var len = res.data.point.length - 1;
+    return res.data.point[len].value[0].intVal;
+  } catch (error) {
+    return null;
+  }
+};
+
+getAlcoholicDataSet = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "me.t.wellhealthbot.alcoholic"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) return null;
+
+    const theBigDay = new Date();
+    theBigDay.setFullYear(2021, 10, 01);
+    var min = (theBigDay.getTime() + performanceNow()) * 1000000;
+    var max = now();
+
+    const options = {
+      method: "get",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/${min}-${max}`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    };
+
+    const res = await axios(options);
+    var len = res.data.point.length - 1;
+    return res.data.point[len].value[0].intVal;
+  } catch (error) {
+    return null;
+  }
+};
+
+getCholesterolDataSet = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "me.t.wellhealthbot.cholesterol"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) return null;
+
+    const theBigDay = new Date();
+    theBigDay.setFullYear(2021, 10, 01);
+    var min = (theBigDay.getTime() + performanceNow()) * 1000000;
+    var max = now();
+
+    const options = {
+      method: "get",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/${min}-${max}`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    };
+
+    const res = await axios(options);
+    var len = res.data.point.length - 1;
+    return res.data.point[len].value[0].intVal;
+  } catch (error) {
+    return null;
+  }
+};
+
+getActiveDataSet = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "me.t.wellhealthbot.active"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) return null;
+
+    const theBigDay = new Date();
+    theBigDay.setFullYear(2021, 10, 01);
+    var min = (theBigDay.getTime() + performanceNow()) * 1000000;
+    var max = now();
+
+    const options = {
+      method: "get",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/${min}-${max}`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    };
+
+    const res = await axios(options);
+    var len = res.data.point.length - 1;
+    return res.data.point[len].value[0].intVal;
+  } catch (error) {
+    return null;
+  }
+};
+
+getGlucoseDataSet = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "me.t.wellhealthbot.glucose"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) return null;
+
+    const theBigDay = new Date();
+    theBigDay.setFullYear(2021, 10, 01);
+    var min = (theBigDay.getTime() + performanceNow()) * 1000000;
+    var max = now();
+
+    const options = {
+      method: "get",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/${min}-${max}`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    };
+
+    const res = await axios(options);
+    var len = res.data.point.length - 1;
+    return res.data.point[len].value[0].intVal;
+  } catch (error) {
+    return null;
+  }
+};
+
+getBloodhDataSet = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "me.t.wellhealthbot.bloodh"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) return null;
+
+    const theBigDay = new Date();
+    theBigDay.setFullYear(2021, 10, 01);
+    var min = (theBigDay.getTime() + performanceNow()) * 1000000;
+    var max = now();
+
+    const options = {
+      method: "get",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/${min}-${max}`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    };
+
+    const res = await axios(options);
+    var len = res.data.point.length - 1;
+    return res.data.point[len].value[0].intVal;
+  } catch (error) {
+    return null;
+  }
+};
+
+getBloodlDataSet = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "me.t.wellhealthbot.bloodl"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) return null;
+
+    const theBigDay = new Date();
+    theBigDay.setFullYear(2021, 10, 01);
+    var min = (theBigDay.getTime() + performanceNow()) * 1000000;
+    var max = now();
+
+    const options = {
+      method: "get",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/${min}-${max}`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    };
+
+    const res = await axios(options);
+    var len = res.data.point.length - 1;
+    return res.data.point[len].value[0].intVal;
   } catch (error) {
     return null;
   }
@@ -236,6 +1025,735 @@ createNutritionDataSource = async (id) => {
     return res.data.dataStreamId;
   } catch (error) {
     console.log(error.response);
+    return null;
+  }
+};
+
+createAgeDataSource = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataSource = ageDataSource;
+
+    const options = {
+      method: "post",
+      url: "https://www.googleapis.com/fitness/v1/users/me/dataSources",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSource,
+    };
+
+    const res = await axios(options);
+    return res.data.dataStreamId;
+  } catch (error) {
+    console.log(error.response);
+    return null;
+  }
+};
+
+createAgeDataSet = async (id, age) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "me.t.wellhealthbot.age"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) {
+      dataStreamId = await createAgeDataSource(id);
+      if (dataStreamId === null) return null;
+    }
+
+    var min = now();
+    var max = now();
+
+    var dataSet = ageDataSet;
+
+    dataSet.minStartTimeNs = min;
+    dataSet.maxEndTimeNs = max;
+    dataSet.point[0].startTimeNanos = min;
+    dataSet.point[0].endTimeNanos = max;
+
+    dataSet.dataSourceId = dataStreamId;
+    dataSet.point[0].value[0].intVal = parseInt(age);
+    dataSet.point[0].originDataSourceId = dataStreamId;
+
+    const options = {
+      method: "patch",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/${min}-${max}`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSet,
+    };
+
+    const res = await axios(options);
+    return true;
+  } catch (error) {
+    return null;
+  }
+};
+
+createSmokerDataSource = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataSource = smokerDataSource;
+
+    const options = {
+      method: "post",
+      url: "https://www.googleapis.com/fitness/v1/users/me/dataSources",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSource,
+    };
+
+    const res = await axios(options);
+    return res.data.dataStreamId;
+  } catch (error) {
+    console.log(error.response);
+    return null;
+  }
+};
+
+createSmokerDataSet = async (id, smoker) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "me.t.wellhealthbot.smoker"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) {
+      dataStreamId = await createSmokerDataSource(id);
+      if (dataStreamId === null) return null;
+    }
+
+    var min = now();
+    var max = now();
+
+    var dataSet = smokerDataSet;
+
+    dataSet.minStartTimeNs = min;
+    dataSet.maxEndTimeNs = max;
+    dataSet.point[0].startTimeNanos = min;
+    dataSet.point[0].endTimeNanos = max;
+
+    dataSet.dataSourceId = dataStreamId;
+    dataSet.point[0].value[0].intVal = parseInt(smoker);
+    dataSet.point[0].originDataSourceId = dataStreamId;
+
+    const options = {
+      method: "patch",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/${min}-${max}`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSet,
+    };
+
+    const res = await axios(options);
+    return true;
+  } catch (error) {
+    return null;
+  }
+};
+
+createAlcoholicDataSource = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataSource = alcoholicDataSource;
+
+    const options = {
+      method: "post",
+      url: "https://www.googleapis.com/fitness/v1/users/me/dataSources",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSource,
+    };
+
+    const res = await axios(options);
+    return res.data.dataStreamId;
+  } catch (error) {
+    console.log(error.response);
+    return null;
+  }
+};
+
+createAlcoholicDataSet = async (id, alcoholic) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "me.t.wellhealthbot.alcoholic"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) {
+      dataStreamId = await createAlcoholicDataSource(id);
+      if (dataStreamId === null) return null;
+    }
+
+    var min = now();
+    var max = now();
+
+    var dataSet = alcoholicDataSet;
+
+    dataSet.minStartTimeNs = min;
+    dataSet.maxEndTimeNs = max;
+    dataSet.point[0].startTimeNanos = min;
+    dataSet.point[0].endTimeNanos = max;
+
+    dataSet.dataSourceId = dataStreamId;
+    dataSet.point[0].value[0].intVal = parseInt(alcoholic);
+    dataSet.point[0].originDataSourceId = dataStreamId;
+
+    const options = {
+      method: "patch",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/${min}-${max}`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSet,
+    };
+
+    const res = await axios(options);
+    return true;
+  } catch (error) {
+    return null;
+  }
+};
+
+createCholesterolDataSource = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataSource = cholesterolDataSource;
+
+    const options = {
+      method: "post",
+      url: "https://www.googleapis.com/fitness/v1/users/me/dataSources",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSource,
+    };
+
+    const res = await axios(options);
+    return res.data.dataStreamId;
+  } catch (error) {
+    console.log(error.response);
+    return null;
+  }
+};
+
+createCholesterolDataSet = async (id, cholesterol) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "me.t.wellhealthbot.cholesterol"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) {
+      dataStreamId = await createCholesterolDataSource(id);
+      if (dataStreamId === null) return null;
+    }
+
+    var min = now();
+    var max = now();
+
+    var dataSet = cholesterolDataSet;
+
+    dataSet.minStartTimeNs = min;
+    dataSet.maxEndTimeNs = max;
+    dataSet.point[0].startTimeNanos = min;
+    dataSet.point[0].endTimeNanos = max;
+
+    dataSet.dataSourceId = dataStreamId;
+    dataSet.point[0].value[0].intVal = parseInt(cholesterol);
+    dataSet.point[0].originDataSourceId = dataStreamId;
+
+    const options = {
+      method: "patch",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/${min}-${max}`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSet,
+    };
+
+    const res = await axios(options);
+    return true;
+  } catch (error) {
+    return null;
+  }
+};
+
+createActiveDataSource = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataSource = activeDataSource;
+
+    const options = {
+      method: "post",
+      url: "https://www.googleapis.com/fitness/v1/users/me/dataSources",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSource,
+    };
+
+    const res = await axios(options);
+    return res.data.dataStreamId;
+  } catch (error) {
+    console.log(error.response);
+    return null;
+  }
+};
+
+createActiveDataSet = async (id, active) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "me.t.wellhealthbot.active"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) {
+      dataStreamId = await createActiveDataSource(id);
+      if (dataStreamId === null) return null;
+    }
+
+    var min = now();
+    var max = now();
+
+    var dataSet = activeDataSet;
+
+    dataSet.minStartTimeNs = min;
+    dataSet.maxEndTimeNs = max;
+    dataSet.point[0].startTimeNanos = min;
+    dataSet.point[0].endTimeNanos = max;
+
+    dataSet.dataSourceId = dataStreamId;
+    dataSet.point[0].value[0].intVal = parseInt(active);
+    dataSet.point[0].originDataSourceId = dataStreamId;
+
+    const options = {
+      method: "patch",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/${min}-${max}`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSet,
+    };
+
+    const res = await axios(options);
+    return true;
+  } catch (error) {
+    return null;
+  }
+};
+
+createGlucoseDataSource = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataSource = glucoseDataSource;
+
+    const options = {
+      method: "post",
+      url: "https://www.googleapis.com/fitness/v1/users/me/dataSources",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSource,
+    };
+
+    const res = await axios(options);
+    return res.data.dataStreamId;
+  } catch (error) {
+    console.log(error.response);
+    return null;
+  }
+};
+
+createGlucoseDataSet = async (id, glucose) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "me.t.wellhealthbot.glucose"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) {
+      dataStreamId = await createGlucoseDataSource(id);
+      if (dataStreamId === null) return null;
+    }
+
+    var min = now();
+    var max = now();
+
+    var dataSet = glucoseDataSet;
+
+    dataSet.minStartTimeNs = min;
+    dataSet.maxEndTimeNs = max;
+    dataSet.point[0].startTimeNanos = min;
+    dataSet.point[0].endTimeNanos = max;
+
+    dataSet.dataSourceId = dataStreamId;
+    dataSet.point[0].value[0].intVal = parseInt(glucose);
+    dataSet.point[0].originDataSourceId = dataStreamId;
+
+    const options = {
+      method: "patch",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/${min}-${max}`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSet,
+    };
+
+    const res = await axios(options);
+    return true;
+  } catch (error) {
+    return null;
+  }
+};
+
+createBloodhDataSource = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataSource = bloodhDataSource;
+
+    const options = {
+      method: "post",
+      url: "https://www.googleapis.com/fitness/v1/users/me/dataSources",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSource,
+    };
+
+    const res = await axios(options);
+    return res.data.dataStreamId;
+  } catch (error) {
+    console.log(error.response);
+    return null;
+  }
+};
+
+createBloodhDataSet = async (id, bloodh) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "me.t.wellhealthbot.bloodh"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) {
+      dataStreamId = await createBloodhDataSource(id);
+      if (dataStreamId === null) return null;
+    }
+
+    var min = now();
+    var max = now();
+
+    var dataSet = bloodhDataSet;
+
+    dataSet.minStartTimeNs = min;
+    dataSet.maxEndTimeNs = max;
+    dataSet.point[0].startTimeNanos = min;
+    dataSet.point[0].endTimeNanos = max;
+
+    dataSet.dataSourceId = dataStreamId;
+    dataSet.point[0].value[0].intVal = parseInt(bloodh);
+    dataSet.point[0].originDataSourceId = dataStreamId;
+
+    const options = {
+      method: "patch",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/${min}-${max}`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSet,
+    };
+
+    const res = await axios(options);
+    return true;
+  } catch (error) {
+    return null;
+  }
+};
+
+createBloodlDataSource = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataSource = bloodlDataSource;
+
+    const options = {
+      method: "post",
+      url: "https://www.googleapis.com/fitness/v1/users/me/dataSources",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSource,
+    };
+
+    const res = await axios(options);
+    return res.data.dataStreamId;
+  } catch (error) {
+    console.log(error.response);
+    return null;
+  }
+};
+
+createBloodlDataSet = async (id, bloodl) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "me.t.wellhealthbot.bloodl"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) {
+      dataStreamId = await createBloodlDataSource(id);
+      if (dataStreamId === null) return null;
+    }
+
+    var min = now();
+    var max = now();
+
+    var dataSet = bloodlDataSet;
+
+    dataSet.minStartTimeNs = min;
+    dataSet.maxEndTimeNs = max;
+    dataSet.point[0].startTimeNanos = min;
+    dataSet.point[0].endTimeNanos = max;
+
+    dataSet.dataSourceId = dataStreamId;
+    dataSet.point[0].value[0].intVal = parseInt(bloodl);
+    dataSet.point[0].originDataSourceId = dataStreamId;
+
+    const options = {
+      method: "patch",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/${min}-${max}`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSet,
+    };
+
+    const res = await axios(options);
+    return true;
+  } catch (error) {
+    return null;
+  }
+};
+
+createGenderDataSource = async (id) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataSource = genderDataSource;
+
+    const options = {
+      method: "post",
+      url: "https://www.googleapis.com/fitness/v1/users/me/dataSources",
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSource,
+    };
+
+    const res = await axios(options);
+    return res.data.dataStreamId;
+  } catch (error) {
+    console.log(error.response);
+    return null;
+  }
+};
+
+createGenderDataSet = async (id, gender) => {
+  try {
+    var accessToken = await getAccessToken(id);
+    if (accessToken === null) return null;
+
+    var dataStreamId = null;
+
+    var dataSources = await getDataSource(id);
+    if (dataSources !== null) {
+      dataStreamId = dataSources.dataSource
+        .filter(
+          (a) =>
+            a.dataStreamName == "user_input" &&
+            a.type == "raw" &&
+            a.dataType.name == "me.t.wellhealthbot.gender"
+        )
+        .map((b) => b.dataStreamId);
+      dataStreamId = dataStreamId.length !== 0 ? dataStreamId[0] : null;
+    }
+
+    if (dataStreamId === null) {
+      dataStreamId = await createGenderDataSource(id);
+      if (dataStreamId === null) return null;
+    }
+
+    var min = now();
+    var max = now();
+
+    var dataSet = genderDataSet;
+
+    dataSet.minStartTimeNs = min;
+    dataSet.maxEndTimeNs = max;
+    dataSet.point[0].startTimeNanos = min;
+    dataSet.point[0].endTimeNanos = max;
+
+    dataSet.dataSourceId = dataStreamId;
+    dataSet.point[0].value[0].intVal = parseInt(gender);
+    dataSet.point[0].originDataSourceId = dataStreamId;
+
+    const options = {
+      method: "patch",
+      url: `https://www.googleapis.com/fitness/v1/users/me/dataSources/${dataStreamId}/datasets/${min}-${max}`,
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+      data: dataSet,
+    };
+
+    const res = await axios(options);
+    return true;
+  } catch (error) {
     return null;
   }
 };
@@ -551,6 +2069,67 @@ getDataSource = async (id) => {
   }
 };
 
+app.get(`/oauth2callback2`, (req, res) => {
+  (async () => {
+    try {
+      var replyObj = new Object();
+      replyObj["headers"] = req.headers;
+      replyObj["body"] = req.body;
+      replyObj["query"] = req.query;
+      replyObj["params"] = req.params;
+
+      const { tokens } = await oauth2Client2.getToken(req.query.code);
+      oauth2Client2.setCredentials(tokens);
+
+      replyObj["tokens"] = tokens;
+
+      const jsonObj = JSON.stringify(replyObj);
+
+      const snapshot = await db
+        .collection("messages")
+        .where("chat.id", "==", parseInt(req.query.state))
+        .orderBy("message_id", "asc")
+        .limitToLast(1)
+        .select("message_id")
+        .get();
+
+      const docs = [];
+      snapshot.docs.map((doc) => docs.push(doc.data())); //.limitToFirst(1);
+      var message_id = docs[0].message_id;
+
+      var myObj = {
+        code: req.query.code,
+        id: parseInt(req.query.state),
+        scope: tokens.scope,
+        access_token: tokens.access_token,
+        expiry_date: tokens.expiry_date,
+        refresh_token: tokens.refresh_token,
+        token_type: tokens.token_type,
+        message_id: message_id,
+      };
+      const myJson = JSON.stringify(myObj);
+
+      await db
+        .collection("oauth2")
+        .doc("/" + message_id + "/")
+        // .doc("/" + new Date().getTime().toString(36) + "/")
+        .create(myObj);
+
+      await fs.writeFile("oauth.txt", jsonObj, function (err) {
+        if (err) {
+          return console.log(`<===Error: ${err}===>`);
+        }
+      });
+
+      return res.redirect("https://t.me/wellhealthbot?start=hi");
+      // return res.status(200).send(replyObj);
+    } catch (error) {
+      console.log(error);
+      return res.status(500).send(error);
+    }
+  })();
+});
+
 app.get(`/oauth2callback`, (req, res) => {
   (async () => {
     try {
@@ -642,6 +2221,48 @@ app.listen(port, () => {
   console.log(`Express server is listening on ${port}`);
 });
 
+const mainMenu = JSON.stringify({
+  inline_keyboard: [
+    [{ text: "Vitals 🫀", callback_data: "BM" }],
+    [{ text: "Nutrition 🍔", callback_data: "NT" }],
+    // [{ text: "Activity 🚴‍♀️", callback_data: "AC" }],
+    [{ text: "Analysis 🔍", callback_data: "AN" }],
+  ],
+});
+
+const bodyMenu = JSON.stringify({
+  inline_keyboard: [
+    [
+      { text: "Weight ⚖️", callback_data: "BM_W" },
+      { text: "Height 📐", callback_data: "BM_H" },
+      { text: "Fat 🥩", callback_data: "BM_F" },
+    ],
+    [
+      { text: "Gender 👫", callback_data: "BM_G" },
+      { text: "Age 🕔", callback_data: "BM_A" },
+      { text: "Smoker 🚬", callback_data: "BM_S" },
+    ],
+    [
+      { text: "Alcoholic 🍻", callback_data: "BM_AL" },
+      { text: "Cholesterol 🧁", callback_data: "BM_C" },
+      { text: "Active ⚽", callback_data: "BM_AC" },
+    ],
+    [
+      { text: "Glucose 🍯", callback_data: "BM_GL" },
+      { text: "Blood 🔺", callback_data: "BM_BH" },
+      { text: "Blood 🔻", callback_data: "BM_BL" },
+    ],
+    [{ text: "Main 🏠", callback_data: "Home" }],
+  ],
+});
+
+const nutritionMenu = JSON.stringify({
+  inline_keyboard: [
+    [{ text: "Food 🍗", callback_data: "NT_M" }],
+    [{ text: "Main 🏠", callback_data: "Home" }],
+  ],
+});
+
 // Just to ping!
 bot.on("message", (msg) => {
   (async () => {
@@ -655,37 +2276,110 @@ bot.on("message", (msg) => {
           : msg.reply_to_message.text;
       // console.log(txt);
       switch (txt) {
-        case "Please enter your meal 👇":
-          var res = await createNutritionDataSet(id, msg.text);
-          if (res) bot.sendMessage(id, "Meal saved ✅");
-          else bot.sendMessage(id, "Meal not saved ❌");
-          var bodyMenu = JSON.stringify({
-            inline_keyboard: [
-              [{ text: "Meal 🍗", callback_data: "NT_M" }],
-              [{ text: "Main 🏠", callback_data: "Home" }],
-            ],
-          });
+        case "Please enter your blood pressure bottom 👇":
+          var res = await createBloodlDataSet(id, msg.text);
+          if (res) bot.sendMessage(id, "Blood saved ✅");
+          else bot.sendMessage(id, "Blood not saved ❌");
           bot.sendMessage(
             id,
             "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
             { reply_markup: bodyMenu, parse_mode: "HTML" }
           );
           break;
+        case "Please enter your blood pressure top 👇":
+          var res = await createBloodhDataSet(id, msg.text);
+          if (res) bot.sendMessage(id, "Blood saved ✅");
+          else bot.sendMessage(id, "Blood not saved ❌");
+          bot.sendMessage(
+            id,
+            "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
+            { reply_markup: bodyMenu, parse_mode: "HTML" }
+          );
+          break;
+        case "Please enter your glucose 👇":
+          var res = await createGlucoseDataSet(id, msg.text);
+          if (res) bot.sendMessage(id, "Glucose saved ✅");
+          else bot.sendMessage(id, "Glucose not saved ❌");
+          bot.sendMessage(
+            id,
+            "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
+            { reply_markup: bodyMenu, parse_mode: "HTML" }
+          );
+          break;
+        case "Please enter your active 👇":
+          var res = await createActiveDataSet(id, msg.text);
+          if (res) bot.sendMessage(id, "Active saved ✅");
+          else bot.sendMessage(id, "Active not saved ❌");
+          bot.sendMessage(
+            id,
+            "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
+            { reply_markup: bodyMenu, parse_mode: "HTML" }
+          );
+          break;
+        case "Please enter your cholesterol 👇":
+          var res = await createCholesterolDataSet(id, msg.text);
+          if (res) bot.sendMessage(id, "Cholesterol saved ✅");
+          else bot.sendMessage(id, "Cholesterol not saved ❌");
+          bot.sendMessage(
+            id,
+            "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
+            { reply_markup: bodyMenu, parse_mode: "HTML" }
+          );
+          break;
+        case "Please enter your alcoholic 👇":
+          var res = await createAlcoholicDataSet(id, msg.text);
+          if (res) bot.sendMessage(id, "Alcoholic saved ✅");
+          else bot.sendMessage(id, "Alcoholic not saved ❌");
+          bot.sendMessage(
+            id,
+            "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
+            { reply_markup: bodyMenu, parse_mode: "HTML" }
+          );
+          break;
+        case "Please enter your smoker 👇":
+          var res = await createSmokerDataSet(id, msg.text);
+          if (res) bot.sendMessage(id, "Smoker saved ✅");
+          else bot.sendMessage(id, "Smoker not saved ❌");
+          bot.sendMessage(
+            id,
+            "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
+            { reply_markup: bodyMenu, parse_mode: "HTML" }
+          );
+          break;
+        case "Please enter your age 👇":
+          var res = await createAgeDataSet(id, msg.text);
+          if (res) bot.sendMessage(id, "Age saved ✅");
+          else bot.sendMessage(id, "Age not saved ❌");
+          bot.sendMessage(
+            id,
+            "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
+            { reply_markup: bodyMenu, parse_mode: "HTML" }
+          );
+          break;
+        case "Please enter your gender 👇":
+          var res = await createGenderDataSet(id, msg.text);
+          if (res) bot.sendMessage(id, "Gender saved ✅");
+          else bot.sendMessage(id, "Gender not saved ❌");
+          bot.sendMessage(
+            id,
+            "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
+            { reply_markup: bodyMenu, parse_mode: "HTML" }
+          );
+          break;
+        case "Please enter your food 👇":
+          var res = await createNutritionDataSet(id, msg.text);
+          if (res) bot.sendMessage(id, "Food saved ✅");
+          else bot.sendMessage(id, "Food not saved ❌");
+          bot.sendMessage(
+            id,
+            "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
+            { reply_markup: nutritionMenu, parse_mode: "HTML" }
+          );
+          break;
         case "Please enter your fat 👇":
-          console.log("FAT");
           var res = await createFatDataSet(id, msg.text);
           if (res) bot.sendMessage(id, "Fat saved ✅");
           else bot.sendMessage(id, "Fat not saved ❌");
-          var bodyMenu = JSON.stringify({
-            inline_keyboard: [
-              [
-                { text: "Weight ⚖️", callback_data: "BM_W" },
-                { text: "Height 📐", callback_data: "BM_H" },
-                { text: "Body fat 🥩", callback_data: "BM_F" },
-              ],
-              [{ text: "Main 🏠", callback_data: "Home" }],
-            ],
-          });
           bot.sendMessage(
             id,
             "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
@@ -696,16 +2390,6 @@ bot.on("message", (msg) => {
           var res = await createHeightDataSet(id, msg.text);
           if (res) bot.sendMessage(id, "Height saved ✅");
           else bot.sendMessage(id, "Height not saved ❌");
-          var bodyMenu = JSON.stringify({
-            inline_keyboard: [
-              [
-                { text: "Weight ⚖️", callback_data: "BM_W" },
-                { text: "Height 📐", callback_data: "BM_H" },
-                { text: "Body fat 🥩", callback_data: "BM_F" },
-              ],
-              [{ text: "Main 🏠", callback_data: "Home" }],
-            ],
-          });
           bot.sendMessage(
             id,
             "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
@@ -716,16 +2400,6 @@ bot.on("message", (msg) => {
           var res = await createWeightDataSet(id, msg.text);
           if (res) bot.sendMessage(id, "Weight saved ✅");
           else bot.sendMessage(id, "Weight not saved ❌");
-          var bodyMenu = JSON.stringify({
-            inline_keyboard: [
-              [
-                { text: "Weight ⚖️", callback_data: "BM_W" },
-                { text: "Height 📐", callback_data: "BM_H" },
-                { text: "Body fat 🥩", callback_data: "BM_F" },
-              ],
-              [{ text: "Main 🏠", callback_data: "Home" }],
-            ],
-          });
           bot.sendMessage(
             id,
             "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
@@ -762,7 +2436,12 @@ bot.on("message", (msg) => {
               { reply_markup: markup, parse_mode: "HTML" }
             );
           } else {
-            bot.sendMessage(msg.chat.id, "I am alive!");
+            bot.sendMessage(
+              id,
+              "Please use /menu to view what <b>WellHealth</b> 🤖 can do",
+              { parse_mode: "HTML" }
+            );
+            // bot.sendMessage(msg.chat.id, "I am alive!");
           }
 
           break;
@@ -790,18 +2469,6 @@ bot.on("message", (msg) => {
               { parse_mode: "HTML" }
             );
           else {
-            var mainMenu = JSON.stringify({
-              inline_keyboard: [
-                [
-                  { text: "Body measurements 📏", callback_data: "BM" },
-                  { text: "Nutrition 🍔", callback_data: "NT" },
-                ],
-                [
-                  { text: "Activity 🚴‍♀️", callback_data: "AC" },
-                  { text: "Vitals 🫀", callback_data: "VT" },
-                ],
-              ],
-            });
             bot.sendMessage(
               msg.chat.id,
               "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
@@ -844,6 +2511,22 @@ bot.on("callback_query", function (msg) {
       console.log("callback_query");
       var id = msg.from.id;
       switch (msg.data) {
+        case "AN":
+          var isAuth = await isAuthorizedClient(id);
+          bot.answerCallbackQuery(msg.id, "🔍", { show_alert: false });
+          if (!isAuth)
+            bot.sendMessage(
+              id,
+              "Please use /connect to link your <b>GoogleFit🏃‍♂️</b> account first.",
+              { parse_mode: "HTML" }
+            );
+          else {
+            var data = await getAnalysis(id);
+            console.log(data);
+            bot.sendMessage(id, data, { parse_mode: "HTML" });
+          }
+
+          break;
         case "NT":
           bot.answerCallbackQuery(msg.id, "🍔", { show_alert: false });
 
@@ -855,16 +2538,10 @@ bot.on("callback_query", function (msg) {
               { parse_mode: "HTML" }
             );
           else {
-            var bodyMenu = JSON.stringify({
-              inline_keyboard: [
-                [{ text: "Meal 🍗", callback_data: "NT_M" }],
-                [{ text: "Main 🏠", callback_data: "Home" }],
-              ],
-            });
             bot.sendMessage(
               id,
               "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
-              { reply_markup: bodyMenu, parse_mode: "HTML" }
+              { reply_markup: nutritionMenu, parse_mode: "HTML" }
             );
           }
 
@@ -880,16 +2557,6 @@ bot.on("callback_query", function (msg) {
               { parse_mode: "HTML" }
             );
           else {
-            var bodyMenu = JSON.stringify({
-              inline_keyboard: [
-                [
-                  { text: "Weight ⚖️", callback_data: "BM_W" },
-                  { text: "Height 📐", callback_data: "BM_H" },
-                  { text: "Body fat 🥩", callback_data: "BM_F" },
-                ],
-                [{ text: "Main 🏠", callback_data: "Home" }],
-              ],
-            });
             bot.sendMessage(
               id,
               "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
@@ -910,18 +2577,6 @@ bot.on("callback_query", function (msg) {
               { parse_mode: "HTML" }
             );
           else {
-            var mainMenu = JSON.stringify({
-              inline_keyboard: [
-                [
-                  { text: "Body measurements 📏", callback_data: "BM" },
-                  { text: "Nutrition 🍔", callback_data: "NT" },
-                ],
-                [
-                  { text: "Activity 🚴‍♀️", callback_data: "AC" },
-                  { text: "Vitals 🫀", callback_data: "VT" },
-                ],
-              ],
-            });
             bot.sendMessage(
               id,
               "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
@@ -996,6 +2651,204 @@ bot.on("callback_query", function (msg) {
             });
           }
           break;
+        case "BM_G":
+          bot.answerCallbackQuery(msg.id, "👫", { show_alert: false });
+
+          var isAuth = await isAuthorizedClient(id);
+
+          forceReply = JSON.stringify({
+            force_reply: true,
+            input_field_placeholder: "1 (male) / 2 (female)",
+          });
+          if (!isAuth)
+            bot.sendMessage(
+              id,
+              "Please use /connect to link your <b>GoogleFit🏃‍♂️</b> account first.",
+              { parse_mode: "HTML" }
+            );
+          else {
+            bot.sendMessage(id, "Please enter your gender 👇", {
+              reply_markup: forceReply,
+              parse_mode: "HTML",
+            });
+          }
+          break;
+        case "BM_A":
+          bot.answerCallbackQuery(msg.id, "🕔", { show_alert: false });
+
+          var isAuth = await isAuthorizedClient(id);
+
+          forceReply = JSON.stringify({
+            force_reply: true,
+            input_field_placeholder: "Age (total years)",
+          });
+          if (!isAuth)
+            bot.sendMessage(
+              id,
+              "Please use /connect to link your <b>GoogleFit🏃‍♂️</b> account first.",
+              { parse_mode: "HTML" }
+            );
+          else {
+            bot.sendMessage(id, "Please enter your age 👇", {
+              reply_markup: forceReply,
+              parse_mode: "HTML",
+            });
+          }
+          break;
+        case "BM_S":
+          bot.answerCallbackQuery(msg.id, "🚬", { show_alert: false });
+
+          var isAuth = await isAuthorizedClient(id);
+
+          forceReply = JSON.stringify({
+            force_reply: true,
+            input_field_placeholder: "0 (no) / 1 (yes)",
+          });
+          if (!isAuth)
+            bot.sendMessage(
+              id,
+              "Please use /connect to link your <b>GoogleFit🏃‍♂️</b> account first.",
+              { parse_mode: "HTML" }
+            );
+          else {
+            bot.sendMessage(id, "Please enter your smoker 👇", {
+              reply_markup: forceReply,
+              parse_mode: "HTML",
+            });
+          }
+          break;
+        case "BM_AL":
+          bot.answerCallbackQuery(msg.id, "🍻", { show_alert: false });
+
+          var isAuth = await isAuthorizedClient(id);
+
+          forceReply = JSON.stringify({
+            force_reply: true,
+            input_field_placeholder: "0 (no) / 1 (yes)",
+          });
+          if (!isAuth)
+            bot.sendMessage(
+              id,
+              "Please use /connect to link your <b>GoogleFit🏃‍♂️</b> account first.",
+              { parse_mode: "HTML" }
+            );
+          else {
+            bot.sendMessage(id, "Please enter your alcoholic 👇", {
+              reply_markup: forceReply,
+              parse_mode: "HTML",
+            });
+          }
+          break;
+        case "BM_C":
+          bot.answerCallbackQuery(msg.id, "🧁", { show_alert: false });
+
+          var isAuth = await isAuthorizedClient(id);
+
+          forceReply = JSON.stringify({
+            force_reply: true,
+            input_field_placeholder: "1 (low) / 2 (mid) / 3 (high)",
+          });
+          if (!isAuth)
+            bot.sendMessage(
+              id,
+              "Please use /connect to link your <b>GoogleFit🏃‍♂️</b> account first.",
+              { parse_mode: "HTML" }
+            );
+          else {
+            bot.sendMessage(id, "Please enter your cholesterol 👇", {
+              reply_markup: forceReply,
+              parse_mode: "HTML",
+            });
+          }
+          break;
+        case "BM_AC":
+          bot.answerCallbackQuery(msg.id, "⚽", { show_alert: false });
+
+          var isAuth = await isAuthorizedClient(id);
+
+          forceReply = JSON.stringify({
+            force_reply: true,
+            input_field_placeholder: "0 (no) / 1 (yes)",
+          });
+          if (!isAuth)
+            bot.sendMessage(
+              id,
+              "Please use /connect to link your <b>GoogleFit🏃‍♂️</b> account first.",
+              { parse_mode: "HTML" }
+            );
+          else {
+            bot.sendMessage(id, "Please enter your active 👇", {
+              reply_markup: forceReply,
+              parse_mode: "HTML",
+            });
+          }
+          break;
+        case "BM_GL":
+          bot.answerCallbackQuery(msg.id, "🍯", { show_alert: false });
+
+          var isAuth = await isAuthorizedClient(id);
+
+          forceReply = JSON.stringify({
+            force_reply: true,
+            input_field_placeholder: "1 (low) / 2 (mid) / 3 (high)",
+          });
+          if (!isAuth)
+            bot.sendMessage(
+              id,
+              "Please use /connect to link your <b>GoogleFit🏃‍♂️</b> account first.",
+              { parse_mode: "HTML" }
+            );
+          else {
+            bot.sendMessage(id, "Please enter your glucose 👇", {
+              reply_markup: forceReply,
+              parse_mode: "HTML",
+            });
+          }
+          break;
+        case "BM_BH":
+          bot.answerCallbackQuery(msg.id, "🔺", { show_alert: false });
+
+          var isAuth = await isAuthorizedClient(id);
+
+          forceReply = JSON.stringify({
+            force_reply: true,
+            input_field_placeholder: "Top (number)",
+          });
+          if (!isAuth)
+            bot.sendMessage(
+              id,
+              "Please use /connect to link your <b>GoogleFit🏃‍♂️</b> account first.",
+              { parse_mode: "HTML" }
+            );
+          else {
+            bot.sendMessage(id, "Please enter your blood pressure top 👇", {
+              reply_markup: forceReply,
+              parse_mode: "HTML",
+            });
+          }
+          break;
+        case "BM_BL":
+          bot.answerCallbackQuery(msg.id, "🔻", { show_alert: false });
+
+          var isAuth = await isAuthorizedClient(id);
+
+          forceReply = JSON.stringify({
+            force_reply: true,
+            input_field_placeholder: "Bottom (number)",
+          });
+          if (!isAuth)
+            bot.sendMessage(
+              id,
+              "Please use /connect to link your <b>GoogleFit🏃‍♂️</b> account first.",
+              { parse_mode: "HTML" }
+            );
+          else {
+            bot.sendMessage(id, "Please enter your blood pressure bottom 👇", {
+              reply_markup: forceReply,
+              parse_mode: "HTML",
+            });
+          }
+          break;
         case "NT_M":
           bot.answerCallbackQuery(msg.id, "🍗", { show_alert: false });
 
@@ -1012,7 +2865,7 @@ bot.on("callback_query", function (msg) {
               { parse_mode: "HTML" }
             );
           else {
-            bot.sendMessage(id, "Please enter your meal 👇", {
+            bot.sendMessage(id, "Please enter your food 👇", {
               reply_markup: forceReply,
               parse_mode: "HTML",
             });

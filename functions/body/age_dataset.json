@@ -1,0 +1,18 @@
+{
+    "minStartTimeNs": "1638140848009695800",
+    "maxEndTimeNs": "1638140848010038100",
+    "dataSourceId": "raw:me.t.wellhealthbot.age:645959496688:user_input",
+    "point": [
+        {
+            "startTimeNanos": "1638140848009695800",
+            "endTimeNanos": "1638140848010038100",
+            "dataTypeName": "me.t.wellhealthbot.age",
+            "originDataSourceId": "raw:me.t.wellhealthbot.age:645959496688:user_input",
+            "value": [
+                {
+                    "intVal": 1
+                }
+            ]
+        }
+    ]
+}
