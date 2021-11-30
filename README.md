@@ -36,3 +36,10 @@ https://developers.google.com/identity/protocols/oauth2/scopes
 # Functions Framework for Node.js
 
 https://github.com/GoogleCloudPlatform/functions-framework-nodejs
+https://docs.microsoft.com/en-us/windows/wsl/install-manual#step-4---download-the-linux-kernel-update-package
+
+pack build --builder gcr.io/buildpacks/builder:v1 --env GOOGLE_FUNCTION_SIGNATURE_TYPE=http --env GOOGLE_FUNCTION_TARGET=app wellhealth-bot
+
+docker tag wellhealth-bot saeedrahmo/wellhealth-bot
+
+docker push saeedrahmo/wellhealth-bot
