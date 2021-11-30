@@ -110,7 +110,7 @@ const scopes = [
 ];
 
 const TOKEN = botConfig.api_token;
-const url = "https://31d7-109-231-73-218.ngrok.io";
+const url = "https://6f35-109-231-73-218.ngrok.io";
 // const url = "https://us-central1-spring-duality-330117.cloudfunctions.net/app";
 const port = 8090;
 
@@ -2307,6 +2307,7 @@ bot.on("message", (msg) => {
         isAuth = await isAuthorizedClient(id);
         isAuth2 = await isAuthorizedClient2(1850256092);
       }
+      console.log(accessToken);
       // console.log(txt);
       switch (txt) {
         case "Please enter your blood pressure bottom 👇":
