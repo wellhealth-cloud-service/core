@@ -132,7 +132,7 @@ renewAccessToken = async (tokens) => {
   try {
     oauth2Client.setCredentials(tokens);
     const access = await oauth2Client.getAccessToken();
-    console.log(`GOOGLEFIT \n${access.token}`);
+    // console.log(`GOOGLEFIT \n${access.token}`);
     return access.token;
   } catch (error) {
     return null;
@@ -143,7 +143,7 @@ renewAccessToken2 = async (tokens) => {
   try {
     oauth2Client2.setCredentials(tokens);
     const access = await oauth2Client2.getAccessToken();
-    console.log(`GOOGLEAI \n${access.token}`);
+    // console.log(`GOOGLEAI \n${access.token}`);
     return access.token;
   } catch (error) {
     return null;
@@ -999,7 +999,7 @@ createNutritionDataSet = async (id, meal) => {
     const res = await axios(options);
     return true;
   } catch (error) {
-    console.log(error);
+    // console.log(error);
     return null;
   }
 };
@@ -1024,7 +1024,7 @@ createNutritionDataSource = async (id) => {
     const res = await axios(options);
     return res.data.dataStreamId;
   } catch (error) {
-    console.log(error.response);
+    // console.log(error.response);
     return null;
   }
 };
@@ -1049,7 +1049,7 @@ createAgeDataSource = async (id) => {
     const res = await axios(options);
     return res.data.dataStreamId;
   } catch (error) {
-    console.log(error.response);
+    // console.log(error.response);
     return null;
   }
 };
@@ -1130,7 +1130,7 @@ createSmokerDataSource = async (id) => {
     const res = await axios(options);
     return res.data.dataStreamId;
   } catch (error) {
-    console.log(error.response);
+    // console.log(error.response);
     return null;
   }
 };
@@ -1211,7 +1211,7 @@ createAlcoholicDataSource = async (id) => {
     const res = await axios(options);
     return res.data.dataStreamId;
   } catch (error) {
-    console.log(error.response);
+    // console.log(error.response);
     return null;
   }
 };
@@ -1292,7 +1292,7 @@ createCholesterolDataSource = async (id) => {
     const res = await axios(options);
     return res.data.dataStreamId;
   } catch (error) {
-    console.log(error.response);
+    // console.log(error.response);
     return null;
   }
 };
@@ -1373,7 +1373,7 @@ createActiveDataSource = async (id) => {
     const res = await axios(options);
     return res.data.dataStreamId;
   } catch (error) {
-    console.log(error.response);
+    // console.log(error.response);
     return null;
   }
 };
@@ -1454,7 +1454,7 @@ createGlucoseDataSource = async (id) => {
     const res = await axios(options);
     return res.data.dataStreamId;
   } catch (error) {
-    console.log(error.response);
+    // console.log(error.response);
     return null;
   }
 };
@@ -1535,7 +1535,7 @@ createBloodhDataSource = async (id) => {
     const res = await axios(options);
     return res.data.dataStreamId;
   } catch (error) {
-    console.log(error.response);
+    // console.log(error.response);
     return null;
   }
 };
@@ -1616,7 +1616,7 @@ createBloodlDataSource = async (id) => {
     const res = await axios(options);
     return res.data.dataStreamId;
   } catch (error) {
-    console.log(error.response);
+    // console.log(error.response);
     return null;
   }
 };
@@ -1697,7 +1697,7 @@ createGenderDataSource = async (id) => {
     const res = await axios(options);
     return res.data.dataStreamId;
   } catch (error) {
-    console.log(error.response);
+    // console.log(error.response);
     return null;
   }
 };
@@ -1778,7 +1778,7 @@ createFatDataSource = async (id) => {
     const res = await axios(options);
     return res.data.dataStreamId;
   } catch (error) {
-    console.log(error.response);
+    // console.log(error.response);
     return null;
   }
 };
@@ -1859,7 +1859,7 @@ createHeightDataSource = async (id) => {
     const res = await axios(options);
     return res.data.dataStreamId;
   } catch (error) {
-    console.log(error.response.status);
+    // console.log(error.response.status);
     return null;
   }
 };
@@ -1940,7 +1940,7 @@ createWeightDataSource = async (id) => {
     const res = await axios(options);
     return res.data.dataStreamId;
   } catch (error) {
-    console.log(error.response.status);
+    // console.log(error.response.status);
     return null;
   }
 };
@@ -2117,14 +2117,14 @@ app.get(`/oauth2callback2`, (req, res) => {
 
       await fs.writeFile("oauth.txt", jsonObj, function (err) {
         if (err) {
-          return console.log(`<===Error: ${err}===>`);
+          // return console.log(`<===Error: ${err}===>`);
         }
       });
 
       return res.redirect("https://t.me/wellhealthbot?start=hi");
       // return res.status(200).send(replyObj);
     } catch (error) {
-      console.log(error);
+      // console.log(error);
       return res.status(500).send(error);
     }
   })();
@@ -2178,7 +2178,7 @@ app.get(`/oauth2callback`, (req, res) => {
 
       await fs.writeFile("oauth.txt", jsonObj, function (err) {
         if (err) {
-          return console.log(`<===Error: ${err}===>`);
+          // return console.log(`<===Error: ${err}===>`);
         }
       });
 
@@ -2201,7 +2201,7 @@ app.post("/api/create", (req, res) => {
         .create({ item: req.body.item, color: "blue" });
       return res.status(200).send();
     } catch (error) {
-      console.log(error);
+      // console.log(error);
       return res.status(500).send(error);
     }
   })();
@@ -2218,7 +2218,7 @@ app.post(`/bot${TOKEN}`, (req, res) => {
 
 // Start Express Server
 app.listen(port, () => {
-  console.log(`Express server is listening on ${port}`);
+  // console.log(`Express server is listening on ${port}`);
 });
 
 const mainMenu = JSON.stringify({
@@ -2499,7 +2499,7 @@ bot.on("message", (msg) => {
         .doc("/" + msg.message_id + "/")
         .create(msg);
     } catch (error) {
-      console.log(error);
+      // console.log(error);
       bot.sendMessage(msg.chat.id, error);
     }
   })();
@@ -2508,7 +2508,7 @@ bot.on("message", (msg) => {
 bot.on("callback_query", function (msg) {
   (async () => {
     try {
-      console.log("callback_query");
+      // console.log("callback_query");
       var id = msg.from.id;
       switch (msg.data) {
         case "AN":
@@ -2522,7 +2522,7 @@ bot.on("callback_query", function (msg) {
             );
           else {
             var data = await getAnalysis(id);
-            console.log(data);
+            // console.log(data);
             bot.sendMessage(id, data, { parse_mode: "HTML" });
           }
 
@@ -2900,10 +2900,10 @@ bot.on("callback_query", function (msg) {
 
 // Polling errors
 bot.on("polling_error", (error) => {
-  console.log(error.code); // => 'EFATAL'
+  // console.log(error.code); // => 'EFATAL'
 });
 
 // WebHook errors
 bot.on("webhook_error", (error) => {
-  console.log(error.code); // => 'EPARSE'
+  // console.log(error.code); // => 'EPARSE'
 });
