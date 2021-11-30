@@ -4,8 +4,8 @@ const botConfig = require("./auth/apiBotToken.json");
 const express = require("express");
 const { json } = require("express");
 const { google } = require("googleapis");
-const clientSecret = require("./auth/clientSecret.json");
-const clientSecret2 = require("./auth/clientSecret_ml.json");
+const clientSecret = require("./auth/clientSecret2.json");
+const clientSecret2 = require("./auth/clientSecret_ml2.json");
 const fs = require("fs");
 const { Storage } = require("@google-cloud/storage");
 const serviceAccount = require("./auth/serviceAccount.json");
@@ -112,7 +112,7 @@ const scopes = [
 ];
 
 const TOKEN = botConfig.api_token;
-const url = "https://f685-109-231-73-218.ngrok.io";
+const url = "https://31d7-109-231-73-218.ngrok.io";
 const port = 8090;
 
 // No need to pass any parameters as we will handle the updates with Express
@@ -2218,7 +2218,7 @@ app.post(`/bot${TOKEN}`, (req, res) => {
 
 // Start Express Server
 app.listen(port, () => {
-  // console.log(`Express server is listening on ${port}`);
+  console.log(`Express server is listening on ${port}`);
 });
 
 const mainMenu = JSON.stringify({

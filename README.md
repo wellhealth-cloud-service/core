@@ -32,3 +32,7 @@ https://console.cloud.google.com/apis/credentials/consent?project=spring-duality
 # OAuth 2.0 Scopes for Google APIs
 
 https://developers.google.com/identity/protocols/oauth2/scopes
+
+# Functions Framework for Node.js
+
+https://github.com/GoogleCloudPlatform/functions-framework-nodejs

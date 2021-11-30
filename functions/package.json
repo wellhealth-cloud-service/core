@@ -10,7 +10,7 @@
     "logs": "firebase functions:log",
     "servel": "nodemon --exec 'npm run serve'",
     "servew": "nodemon --exec \"npm run serve\"",
-    "servet": "nodemon --exec \"node tg\""
+    "servet": "nodemon --exec \"node index2\""
   },
   "engines": {
     "node": "14"
