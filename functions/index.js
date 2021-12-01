@@ -110,7 +110,7 @@ const scopes = [
 ];
 
 const TOKEN = botConfig.api_token;
-// const url = "https://6f35-109-231-73-218.ngrok.io";
+// const url = "https://b90f-109-231-73-218.ngrok.io";
 const url = "https://us-central1-spring-duality-330117.cloudfunctions.net/app";
 const port = 8090;
 
@@ -126,14 +126,15 @@ app.use(cors({ origin: true }));
 app.use(express.json());
 
 exports.app = functions.https.onRequest(app);
+
 // Start Express Server
 // app.listen(port, () => {
 //   console.log(`Express server is listening on ${port}`);
 // });
 
-exports.helloWorld = (req, res) => {
-  res.send("Hello, World!");
-};
+// exports.helloWorld = (req, res) => {
+//   res.send("Hello, World!");
+// };
 
 app.get("/api/hello", (req, res) => {
   return res.status(200).send("hello");
@@ -237,7 +238,7 @@ getAccessToken = async (id) => {
       .get();
     const docs = [];
     snapshot.docs.map((doc) => docs.push(doc.data())); //.limitToFirst(1);
-
+    // console.log(docs);
     if (docs.length == 0) return null;
     var access_token = docs[0].access_token;
 
@@ -246,6 +247,7 @@ getAccessToken = async (id) => {
     access_token = await renewAccessToken(docs[0]);
     return access_token;
   } catch (error) {
+    // console.log(error);
     return null;
   }
 };
@@ -341,13 +343,14 @@ getAnalysis = async (id) => {
       data: payload,
     };
 
-    const res = await axios(options);
+    // const res = await axios(options);
     // console.log(res.data.payload[0].tables.value.toFixed(2));
     // res.data.payload.tables.value.toFixed(2)
 
-    var risk = new Number(res.data.payload[0].tables.value * 100).toPrecision(
-      4
-    );
+    // var risk = new Number(res.data.payload[0].tables.value * 100).toPrecision(
+    //   4
+    // );
+    var risk = 40;
     var riskResult = "";
 
     if (risk <= 25) riskResult = "✅";
@@ -377,6 +380,7 @@ getAnalysis = async (id) => {
     //x.toFixed(2)
     return result;
   } catch (error) {
+    //console.log(error);
     return null;
   }
 };
@@ -2294,20 +2298,29 @@ bot.on("message", (msg) => {
           ? msg.text
           : msg.reply_to_message.text;
 
+      // console.log(id, txt);
+
       if (userId === id) {
         var currentTimeMil = new Date().getTime();
         if (expireyDate - currentTimeMil < 0) {
+          // console.log("expireyDate");
           isAuth = await isAuthorizedClient(1850256092);
         }
         if (expireyDate2 - currentTimeMil < 0) {
+          //  console.log("expireyDate2");
           isAuth2 = await isAuthorizedClient2(1850256092);
         }
       } else {
+        console.log("else");
         userId = id;
+
         isAuth = await isAuthorizedClient(1850256092);
+        console.log("isAuth");
         isAuth2 = await isAuthorizedClient2(1850256092);
+        console.log("isAuth2");
       }
-      console.log(accessToken);
+      // console.log(`H:${accessToken2}`);
+
       // console.log(txt);
       switch (txt) {
         case "Please enter your blood pressure bottom 👇":
@@ -2439,6 +2452,28 @@ bot.on("message", (msg) => {
             "Alright, choose what <b>WellHealth</b> 🤖 will do 👇",
             { reply_markup: bodyMenu, parse_mode: "HTML" }
           );
+          break;
+        case "/analysis":
+          // var isAuth = await isAuthorizedClient(id);
+
+          if (!isAuth) {
+            bot.sendMessage(
+              id,
+              "Please use /connect to link your <b>GoogleFit🏃‍♂️</b> account first.",
+              { parse_mode: "HTML" }
+            );
+          } else {
+            var data = await getAnalysis(id);
+            // console.log(data);
+            if (data === null)
+              bot.sendMessage(
+                id,
+                "You need to set <b>Vitals 🫀</b> and <b>Nutrition 🍔</b> data to get the results!",
+                { parse_mode: "HTML" }
+              );
+            else bot.sendMessage(id, data, { parse_mode: "HTML" });
+          }
+
           break;
         case "/connect": // Authorization by Google
           // var isAuth = await isAuthorizedClient(msg.chat.id);

@@ -110,7 +110,7 @@ const scopes = [
 ];
 
 const TOKEN = botConfig.api_token;
-const url = "https://6f35-109-231-73-218.ngrok.io";
+const url = "https://b90f-109-231-73-218.ngrok.io";
 // const url = "https://us-central1-spring-duality-330117.cloudfunctions.net/app";
 const port = 8090;
 
