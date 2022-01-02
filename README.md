@@ -50,3 +50,17 @@ docker tag wellhealth-bot saeedrahmo/wellhealth-bot
 docker push saeedrahmo/wellhealth-bot
 
 # Screenshots
+
+![ScreenShot](https://github.com/wellhealth-cloud-service/core/blob/main/screenshots/Architecture.png?raw=true "Architecture design of WellHealth")
+![ScreenShot](https://github.com/wellhealth-cloud-service/core/blob/main/screenshots/InteractionGoogleOauth.png?raw=true "Interaction view of WellHealth with Google Oauth")
+![ScreenShot](https://github.com/wellhealth-cloud-service/core/blob/main/screenshots/InteractionGoogleFit.png?raw=true "Interaction view of WellHealth with Google Fit")
+![ScreenShot](https://github.com/wellhealth-cloud-service/core/blob/main/screenshots/InteractionGoogleAutoML.png?raw=true "Interaction view of WellHealth with Google AutoML")
+![ScreenShot](https://github.com/wellhealth-cloud-service/core/blob/main/screenshots/RestAPI.png?raw=true "Rest API in WellHealth")
+![ScreenShot](https://github.com/wellhealth-cloud-service/core/blob/main/screenshots/GoogleAutoML.png?raw=true "Smartness of Google AutoML in feature engineering and building model")
+![ScreenShot](https://github.com/wellhealth-cloud-service/core/blob/main/screenshots/bot.png?raw=true "Result of starting the WellHealth bot")
+![ScreenShot](https://github.com/wellhealth-cloud-service/core/blob/main/screenshots/authorization.png?raw=true "Available menu after successful authorization")
+![ScreenShot](https://github.com/wellhealth-cloud-service/core/blob/main/screenshots/options.png?raw=true "Options of Vitals that user must enter")
+![ScreenShot](https://github.com/wellhealth-cloud-service/core/blob/main/screenshots/nutrition.png?raw=true "Options of Nutrition that user must enter")
+![ScreenShot](https://github.com/wellhealth-cloud-service/core/blob/main/screenshots/results.png?raw=true "Results of analysis of Well Health")
+![ScreenShot](https://github.com/wellhealth-cloud-service/core/blob/main/screenshots/test1.png?raw=true "Execution of /analysis command of WellHealthBot for 1000 times over Telegram API")
+![ScreenShot](https://github.com/wellhealth-cloud-service/core/blob/main/screenshots/test2.png?raw=true "Overall monitoring for 30 days from beginning to deploy and demo")
