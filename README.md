@@ -1,4 +1,9 @@
-# core
+# Introduction
+
+WellHealth is a cloud-based web service to get, store, and analyze the users’ data and show them how their health status is going on and how to improve it during a specific time. Using the Telegram cloud messenger bot as UI, users will authorize themselves and give the  required consent to the WellHealth service to access their Google Fit accounts. Provided all the services and functions in Google clouds, the user sends data and receives overall information regarding their health and diet and exercise program to keep or improve their condition. These functionalities perform on Google cloud services such as Google Functions, Google Fit, Google AutoML, Firestore, and REST API services. This document discusses the WellHealth requirements, design, functionality, implementation, diagrams, cost, and revenue.
+
+
+# Core
 
 add rules to .eslintrc.js to perform on windows/unix
 remove . from eslint in package.json
@@ -43,3 +48,5 @@ pack build --builder gcr.io/buildpacks/builder:v1 --env GOOGLE_FUNCTION_SIGNATUR
 docker tag wellhealth-bot saeedrahmo/wellhealth-bot
 
 docker push saeedrahmo/wellhealth-bot
+
+# Screenshots
